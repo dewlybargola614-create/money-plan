@@ -124,6 +124,7 @@ function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2
   const end=before+sal+extra-sent-toGo-cash-cards-cleaner-gcash-flights+refund;
   // MP2 dividend for last year, credited in March (avg of last year's month-end balances)
   let div=0;if(m===3){const h=mp2Hist[y-1]||[];const avg=h.length?(h.reduce((a,b)=>a+b,0)+st.mp2*(12-h.length))/12:st.mp2;div=Math.round(avg*st.mp2Rate);mp2+=div}
+  const mInt=Math.round(maya*(st.mayaNet??0.04)/12);maya+=mInt;
   const php=A.php??sent*st.rate,room=Math.max(0,st.mp2Target-mp2),toMp2=Math.min(php,room);
   mp2+=toMp2;maya+=php-toMp2;goty+=toGo*st.rate-tripPhp;
   (mp2Hist[y]=mp2Hist[y]||[]).push(mp2);
@@ -145,7 +146,7 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
   const p=Math.round(r.toSave*st.rate),mp=Math.min(p,Math.round(r.toMp2));
   T.push(['save','Send '+NT(r.toSave)+' → Maya',(r.extra?'Includes bonus + tax refund · ':'')+'remit app · ≈ '+PH(p)]);
   if(mp>0)T.push(['mp2','From Maya, pay '+PH(mp)+' into MP2','Maya or Virtual Pag-IBIG · MP2 goal '+PH(st.mp2Target)]);
-  else T.push(['keep','Keep it in Maya (MP2 is full ✓)','Maya goal '+PH(st.mayaTarget)]);}
+  else T.push(['keep','Put it in a Maya Personal Goal (MP2 is full ✓)','Max ₱100,000 per goal — open a new goal when one is full · Maya target '+PH(st.mayaTarget)]);}
  if(r.toGo)T.push(['gotyme','Send '+NT(r.toGo)+' → GoTyme (trips)','Same day as payday']);
  T.push(['gcash','Send '+NT(r.gcash)+' → GCash','Mom ₱12,000 · vet buffer ₱3,000 · subscriptions ₱1,900']);
  if(r.cleaner)T.push(['cleaner','Pay the cleaner: '+NT(r.cleaner),'This month']);
@@ -189,7 +190,7 @@ function renderMoney(rows){const r=rows.find(x=>x.k===cur)||rows[0],st=S.setting
  <div class="card"><h2>Accounts after ${MN[r.m-1]}</h2>
  <div class="row"><span>🏤 Post Office</span><span class="v ${r.end<st.low?'warn':''}">${NT(r.actualEnd??r.end)}</span></div>
  <div class="row"><span>🔒 MP2</span><span class="v">${PH(r.mp2)}</span></div>
- <div class="row"><span>💰 Maya savings</span><span class="v">${PH(r.maya)}</span></div>
+ <div class="row"><span>💰 Maya (goals + savings)</span><span class="v">${PH(r.maya)}</span></div>
  <div class="row"><span>✈️ GoTyme (trips)</span><span class="v ${r.goty<0?'warn':''}">${PH(r.goty)}</span></div>
  <div class="row"><span>Lowest before payday</span><span class="v ${r.before<st.low?'warn':''}">${NT(r.before)}</span></div></div>
  <div class="card"><h2>Goal · ${MN[last.m-1]} ${last.y}</h2>
@@ -206,10 +207,10 @@ function closeSheet(){$('#sheet').classList.remove('open')}
 const FIELDS=[['Each payday',[['save5','To Maya/MP2 — 5% tax months (NT$)'],['save18','To Maya/MP2 — 18% tax months (NT$)'],['tripFund','To GoTyme (NT$)'],['tfJuly','To GoTyme in July (NT$)'],['gcashNT','To GCash — Mom & subs (NT$)'],['cash','Monday cash (NT$)']]],
 ['Bills & spending',[['rent','Rent (NT$)'],['water','Water (NT$)'],['elecNormal','Electricity, normal (NT$)'],['elecSummer','Electricity, summer (NT$)'],['cleaner','Cleaner / month (NT$)'],['delivery','Food delivery / month (NT$)'],['uber','Uber / taxi / month (NT$)'],['fun','Local trips & fun / month (NT$)'],['phone','Phone (NT$)'],['spotify','Spotify (NT$)']]],
 ['Pay',[['gross','Gross pay incl. housing (NT$)'],['ins','Insurance (NT$)'],['lunch','Lunch fee per semester (NT$)'],['bonusGross','Bonus (NT$)']]],
-['Accounts & goals',[['startBal','Post Office at start (NT$)'],['mp2','MP2 at start (₱)'],['maya','Maya at start (₱)'],['gotyme','GoTyme at start (₱)'],['mp2Target','MP2 goal (₱)'],['mayaTarget','Maya goal (₱)'],['mp2Rate','MP2 dividend rate (0.0712 = 7.12%)'],['rate','₱ per NT$1 (planning rate)'],['low','Warn if Post Office under (NT$)']]]];
+['Accounts & goals',[['startBal','Post Office at start (NT$)'],['mp2','MP2 at start (₱)'],['maya','Maya at start (₱)'],['gotyme','GoTyme at start (₱)'],['mp2Target','MP2 goal (₱)'],['mayaTarget','Maya goal (₱)'],['mp2Rate','MP2 dividend rate (0.0712 = 7.12%)'],['mayaNet','Maya interest after tax (0.04 = 4%)'],['rate','₱ per NT$1 (planning rate)'],['low','Warn if Post Office under (NT$)']]]];
 function renderSettings(){const st=S.settings;
  $('#app').innerHTML=`<header><h1>Settings</h1></header><main>
- ${FIELDS.map(([g,fs])=>`<div class="card"><h2>${g}</h2>${fs.map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${st[f]??''}" onchange="setNum('${f}',this.value)"></label>`).join('')}</div>`).join('')}
+ ${FIELDS.map(([g,fs])=>`<div class="card"><h2>${g}</h2>${fs.map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${st[f]??(f==='mayaNet'?0.04:'')}" onchange="setNum('${f}',this.value)"></label>`).join('')}</div>`).join('')}
  <div class="card"><h2>Trips (spending from GoTyme)</h2>${st.trips.map((t,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>${t.name}</b><label class="f"><span>Fly out</span><input type="date" value="${t.out}" onchange="setTrip(${i},'out',this.value)"></label><label class="f"><span>Back</span><input type="date" value="${t.back}" onchange="setTrip(${i},'back',this.value)"></label><label class="f"><span>Spending budget (₱)</span><input inputmode="decimal" value="${t.php}" onchange="setTrip(${i},'php',this.value)"></label></div>`).join('')}</div>
  <div class="card"><h2>Flights (from Post Office)</h2>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
