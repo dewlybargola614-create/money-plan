@@ -82,24 +82,20 @@ textarea{width:100%;height:110px;font-size:13px;border-radius:12px;border:1px so
 .empty{text-align:center;padding:40px 20px;color:var(--sub)}
 .warn{color:var(--warn);font-weight:700}
 .small{font-size:13px;color:var(--sub);line-height:1.4}
-.hero{background:linear-gradient(135deg,#fff3ea,#f6f4f1);padding-bottom:12px}
-.prog{height:8px;width:180px;background:#eee4da;border-radius:4px;margin:10px 0 4px;overflow:hidden}.prog i{display:block;height:100%;background:var(--green);border-radius:4px}
-.notes{margin:4px 0 6px}.note{font-size:14px;background:#fff;border-radius:12px;padding:8px 12px;margin:6px 0;color:#444;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-.sec{background:#fff;border-radius:18px;margin:12px 0;padding:6px 14px 10px;border-left:6px solid var(--c);box-shadow:0 1px 3px rgba(0,0,0,.05)}
-.sh{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:16px;padding:10px 0 4px;color:var(--c)}
-.cnt{font-size:13px;background:#f3f1ee;color:#666;border-radius:10px;padding:2px 9px}
-.it{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
-.it:first-of-type{border-top:0}
-.ck{flex:none;width:30px;height:30px;border-radius:15px;border:2.5px solid #cfcac3;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
-.it.done .ck{background:var(--green);border-color:var(--green)}
-.it.done .tt{color:var(--sub);text-decoration:line-through}
-.bd{flex:1;min-width:0}.tt{font-size:17px;font-weight:600;line-height:1.25}.ww{font-size:13px;color:var(--sub);margin-top:2px}
-.am{text-align:right;font-weight:800;font-size:16px;white-space:nowrap;font-variant-numeric:tabular-nums}
-.ed{display:block;font-size:12px;font-weight:600;color:var(--blue);margin-top:4px}
-.real{font-size:14px;font-weight:700;color:var(--green);margin-top:4px}
-.more{font-size:14px;color:var(--sub);padding:10px 0 2px;text-align:center}
-.mon{padding:12px 0;border-top:1px solid var(--line)}
-.goal{background:linear-gradient(135deg,#fff,#fdeeee)}
+.accts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 12px}
+.acct{border-radius:16px;padding:12px 14px;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.acct .an{font-size:13px;font-weight:700;opacity:.9;letter-spacing:.2px}.acct .av{font-size:20px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}.acct .ad{font-size:12px;margin-top:4px;opacity:.95}
+.acp{background:#00843d}
+.amaya{background:#111;color:#00e676}.amaya .an{color:#fff;font-family:"Avenir Next","Helvetica Neue",sans-serif;letter-spacing:.5px}
+.amp2{background:#1b3a8f}.amp2 .an{font-family:Georgia,serif}
+.agoty{background:#3b1f6e;color:#5ef2e4}.agoty .an{color:#fff;font-style:italic}
+.agc{background:#007dfe}.agc .an{font-family:"Arial Rounded MT Bold","Helvetica Neue",sans-serif}
+.aup{background:#fff;color:var(--ink);border:1.5px dashed #cfcac3;box-shadow:none}.aup .an{color:var(--sub)}
+.task.ibar{border-left:5px solid transparent;padding-left:10px;margin-left:-4px}
+.task.ibar.acp{border-left-color:#00843d;background:none;color:inherit}.task.ibar.amaya{border-left-color:#00c853;background:none;color:inherit}
+.task.ibar.agc{border-left-color:#007dfe;background:none;color:inherit}.task.ibar.agoty{border-left-color:#5b3db8;background:none;color:inherit}
+.task.ibar.amix{border-image:linear-gradient(#007dfe,#5b3db8,#1b3a8f,#00c853) 1;border-left-width:5px;border-left-style:solid}
+.task.ibar .an,.task.ibar .av{color:inherit}
 </style>
 </head>
 <body>
@@ -207,30 +203,33 @@ function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2
 function splitApps(n){const c=S.settings.capTx;if(n<=0)return'';if(n<=c)return'one transfer (FEE or Pinoy Express)';return'FEE '+NT(Math.min(c,n))+' + Pinoy Express '+NT(n-Math.min(c,n))}
 // ---------- checklist items (each can hold its real amount) ----------
 function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
- if(r.tax===0.18&&r.m===1)I.push(['⚠️','Smaller salary until August (18% tax).']);
- if(r.m===9&&r.y>=st.highTaxFromYear)I.push(['✅','Tax should be back to 5% this month.']);
- if(r.lunch)I.push(['🍱','Lunch fee '+NT(r.lunch)+' comes out of this salary.']);
- if(r.div)I.push(['🎉','MP2 dividend ≈ '+PH(r.div)+' this month.']);
- if(r.refund)I.push(['💸','School pays back your summer tickets ≈ '+NT(r.refund)+'.']);
- if(r.full)I.push(['🌴','Summer trip! Nothing to savings this month.']);
- if(r.extra)I.push(['🎁','Bonus + tax refund ≈ '+NT(r.extra)+' arrive this month.']);
- T.push({id:'rent',cat:'start',t:'Rent + water',amt:NT(r.rentP),w:ab+' 1 · fixed'});
- T.push({id:'elec',cat:'start',t:'Electricity',amt:'≈ '+NT(r.elecP),w:'NT$5 per kWh',act:[['elec','Paid NT$',r.elecP]]});
- T.push({id:'salary',cat:'pay',t:'Salary arrives',amt:'≈ '+NT(r.netP),w:'Chunghwa Post · '+ab+' 5–8'+(r.unpaid?' · '+r.unpaid+' unpaid days out':''),act:[['salary','Received NT$',r.netP]]});
- if(r.feeP>0||r.A.fee_nt!=null)T.push({id:'fee',cat:'pay',t:'FEE → pesos',amt:NT(r.feeP),w:'For savings (MP2 / Maya)',act:[['fee_nt','Sent NT$',r.feeP],['fee_php','Pesos you received ₱',Math.round(r.feeP*st.rate)]]});
- if(r.peP>0||r.A.pe_nt!=null)T.push({id:'pe',cat:'pay',t:'Pinoy Express → pesos',amt:NT(r.peP),w:'For GCash (family) + GoTyme (trips)',act:[['pe_nt','Sent NT$',r.peP],['pe_php','Pesos you received ₱',Math.round(r.peP*st.rate)]]});
- if(r.pending>0)T.push({id:'swap',cat:'pay',t:'Still to change',amt:NT(r.pending),w:'Monthly limit reached · teacher swap / bank, or next month',act:[['swap_nt','Changed NT$',0],['swap_php','Received ₱',0]]});
+ if(r.tax===0.18&&r.m===1)I.push(['⚠️','Smaller salary from now until August (18% tax).']);
+ if(r.m===9&&r.y>=st.highTaxFromYear)I.push(['✅','Tax should be back to 5% this month. If not, ask HR.']);
+ if(r.lunch)I.push(['🍱','Lunch fee '+NT(r.lunch)+' comes out of this salary. Already counted.']);
+ if(r.div)I.push(['🎉','MP2 dividend for last year (≈'+PH(r.div)+') should be in your MP2 now.']);
+ if(r.refund)I.push(['💸','School pays back your summer PH tickets this month (≈'+NT(r.refund)+'), into your Chunghwa Post account.']);
+ 
+ T.push({id:'rent',t:'Pay rent + water: '+NT(r.rentP),w:ab+' 1 · fixed'});
+ T.push({id:'elec',t:'Pay electricity: ≈ '+NT(r.elecP),w:'NT$5 per kWh · changes every month',act:[['elec','Paid NT$',r.elecP]]});
+ for(const f of r.legs)T.push({id:'fl_'+f.id,t:'Book '+f.name,w:'Budget ≈ '+NT(f.nt)+' (≈'+PH(f.nt*st.rate)+')'+(f.refund?' · school pays it back in '+MN[+f.refund.slice(5)-1]:''),post:f.id,act:[['fl_'+f.id,'Ticket price',f.nt,'flex']]});
+ T.push({id:'salary',t:'Salary arrives in your Chunghwa Post account: ≈ '+NT(r.netP),w:ab+' 5–8'+(r.unpaid?' · '+r.unpaid+' unpaid days taken out':''),act:[['salary','Received NT$',r.netP]]});
+ if(r.full)I.push(['🌴','Summer trip: nothing goes to savings this month. Spend with your GoTyme card: '+PH(r.trip?r.trip.php:0)+' budget (PH + abroad).']);
+ if(r.extra)I.push(['🎁','Bonus + tax refund (≈'+NT(r.extra)+') arrive in your Chunghwa Post account this month.']);
+ T.push({id:'fee',t:'FEE: change '+NT(r.feeP)+' to pesos',w:'For savings (MP2 / Maya) · max '+NT(st.capTx)+' per transfer',act:[['fee_nt','Sent NT$',r.feeP],['fee_php','Pesos you received ₱',Math.round(r.feeP*st.rate)]]});
+ if(r.peP>0||r.A.pe_nt!=null)T.push({id:'pe',t:'Pinoy Express: change '+NT(r.peP)+' to pesos',w:'For GCash (family) + GoTyme (trips)',act:[['pe_nt','Sent NT$',r.peP],['pe_php','Pesos you received ₱',Math.round(r.peP*st.rate)]]});
+ if(r.pending>0)T.push({id:'swap',t:NT(r.pending)+' left to change (NT$50,000 monthly limit reached)',w:'Teacher swap or bank transfer — or it waits for next month. It still counts toward your goal.',act:[['swap_nt','Changed NT$',0],['swap_php','Received ₱',0]]});
+ const tgt=r.mp2<st.mp2Target||r.toMp2>0?'MP2':'a Maya Personal Goal (max ₱100,000 each)';
  const parts=['GCash '+PH(r.gcashPhp)];if(r.goPhp)parts.push('GoTyme '+PH(r.goPhp));if(r.toMp2)parts.push('MP2 '+PH(r.toMp2));if(r.toMaya)parts.push('Maya '+PH(r.toMaya));
- T.push({id:'split',cat:'pay',t:'Send the pesos',amt:PH(r.gcashPhp+r.goPhp+r.toMp2+r.toMaya),w:parts.join(' · '),act:[['gcash_php','GCash ₱',r.gcashPhp],['goty_php','GoTyme ₱',r.goPhp],['mp2_php','MP2 ₱',r.toMp2],['maya_php','Maya ₱',r.toMaya]]});
- for(const f of r.legs)T.push({id:'fl_'+f.id,cat:'trip',t:'Book: '+f.name.replace(/^(Winter|Summer) (\d+) · /,'$1 $2 · '),amt:'≈ '+NT(f.nt),w:'≈ '+PH(f.nt*st.rate)+(f.refund?' · school pays back':''),post:f.id,act:[['fl_'+f.id,'Ticket price',f.nt,'flex']]});
+ T.push({id:'split',t:'Send the pesos: '+parts.join(' · '),w:'GCash = Mom ₱12,000 + vet ₱3,000 + subs ₱1,900'+(r.toMaya?' · Maya goals max ₱100,000 each':''),
+  act:[['gcash_php','GCash ₱',r.gcashPhp],['goty_php','GoTyme ₱',r.goPhp],['mp2_php','MP2 ₱',r.toMp2],['maya_php','Maya ₱',r.toMaya]]});
+ if(r.cleanerP)T.push({id:'cleaner',t:'Pay the cleaner: ≈ '+NT(r.cleanerP),w:'This month',act:[['cleaner','Paid NT$',r.cleanerP]]});
  const nx=rows.find(x=>x.y*12+x.m===r.y*12+r.m+1);
  for(const t of st.trips){const o=d(t.out),here=o.getFullYear()===r.y&&o.getMonth()+1===r.m;
-  if((here&&!r.full)||(nx&&nx.full&&nx.trip===t)){const have=r.goty+(here?r.tripPhp:0);T.push({id:'trip-'+t.out,cat:'trip',t:'GoTyme ready for '+t.name,amt:PH(have),w:'Budget '+PH(t.php)+(have>=t.php?' ✓':' · short '+PH(t.php-have))})}}
- if(r.away&&r.trip)T.push({id:'tripspend',cat:'trip',t:'Trip spending (GoTyme)',amt:PH(r.tripPhp),w:r.full?'Whole month away':'Days away this month',act:[['trip_php','Spent',r.tripPhp,'flexPhp']]});
- if(r.cleanerP)T.push({id:'cleaner',cat:'month',t:'Cleaner',amt:'≈ '+NT(r.cleanerP),w:'This month',act:[['cleaner','Paid NT$',r.cleanerP]]});
- if(r.m===5)T.push({id:'tax',cat:'end',t:'FILE '+(r.y-1)+' income tax',amt:'',w:'May 1–31 · needed for the August refund'});
- if(r.m===8&&r.y===2028)T.push({id:'aprc',cat:'end',t:'APRC application',amt:'',w:'August 2028'});
- T.push({id:'end',cat:'end',t:'Chunghwa Post balance',amt:'≈ '+NT(r.end),w:'End of '+ab,act:[['end','Balance NT$',r.end]]});
+  if((here&&!r.full)||(nx&&nx.full&&nx.trip===t)){const have=r.goty+(here?r.tripPhp:0);T.push({id:'trip-'+t.out,t:'Before you fly: GoTyme ≈ '+PH(have)+' for '+t.name,w:'Budget '+PH(t.php)+(have>=t.php?' ✓ enough':' · short '+PH(t.php-have))+' · pay with your GoTyme card'})}}
+ if(r.away&&r.trip)T.push({id:'tripspend',t:'Trip spending (GoTyme): budget '+PH(r.tripPhp),w:r.full?'Whole month away':'Your days away this month',act:[['trip_php','Spent',r.tripPhp,'flexPhp']]});
+ if(r.m===5)T.push({id:'tax',t:'FILE your '+(r.y-1)+' Taiwan income tax',w:'May 1–31 · no filing = no August refund'});
+ if(r.m===8&&r.y===2028)T.push({id:'aprc',t:'APRC application',w:'August 2028'});
+ T.push({id:'end',t:'Type your real Chunghwa Post balance',w:'End of '+ab+' · plan ≈ '+NT(r.end)+(r.pending?' (includes '+NT(r.pending)+' waiting to change)':''),act:[['end','Balance NT$',r.end]]});
  return{T,I}}
 function goalLine(rows){const st=S.settings,goal=st.mp2Target+st.mayaTarget,hit=rows.find(r=>r.total>=goal),last=rows[rows.length-1];
  return hit?'₱'+(goal/1e6).toFixed(1)+'M reached: <b>'+MN[hit.m-1]+' '+hit.y+'</b> ✓':'By '+MN[last.m-1]+' '+last.y+': '+PH(last.total)+' of '+PH(goal)}
@@ -247,9 +246,12 @@ function render(){const app=$('#app');
  $('#nav').innerHTML=[['today','✔︎','This month'],['months','🗓','Months'],['money','₱','Money'],['settings','⚙︎','Settings']].map(([t,i,l])=>`<button class="${tab===t?'on':''}" onclick="tab='${t}';render();scrollTo(0,0)"><span>${i}</span>${l}</button>`).join('');
  if(!S.settings.gross&&tab!=='settings'){app.innerHTML=`<header><h1>My Plan</h1></header><main><div class="card empty">No plan loaded yet.<br><br>Open the private setup link Claude sent you, or go to <b>Settings → Restore from code</b>.</div></main>`;return}
  const rows=rowsNow();if(tab==='today')return renderToday(rows);if(tab==='months')return renderMonths(rows);if(tab==='money')return renderMoney(rows);renderSettings()}
-function realText(r,t){return(t.act||[]).filter(([f])=>r.A[f]!=null).map(([f,l,p,c])=>{const pre=l.replace(/ ?(NT\$|₱)$/,'').replace(/^(Paid|Received|Sent|Ticket price|Spent|Balance|Pesos you received)$/,'');let v;if(c==='flex'||c==='flexPhp'){v=r.A[f+'_cur']==='php'||(c==='flexPhp'&&r.A[f+'_cur']!=='nt')?PH(c==='flex'?r.A[f+'_orig']:r.A[f]):NT(c==='flex'?r.A[f]:r.A[f+'_orig'])}else v=l.includes('₱')?PH(r.A[f]):NT(r.A[f]);return(pre?pre+' ':'')+v}).join(' · ')}
-function itemHTML(r,t){const dn=isDone(r.k,t.id),real=realText(r,t);
- return`<div class="it ${dn?'done':''}"><div class="ck" onclick="toggle('${r.k}','${t.id}')">${dn?'✓':''}</div><div class="bd" onclick="${t.act?`openAct('${r.k}','${t.id}')`:`toggle('${r.k}','${t.id}')`}"><div class="tt">${t.t}</div><div class="ww">${t.w}</div>${real?`<div class="real">✓ Real: ${real}</div>`:''}</div><div class="am" onclick="${t.act?`openAct('${r.k}','${t.id}')`:`toggle('${r.k}','${t.id}')`}">${t.amt}${t.act?'<span class="ed">✎</span>':''}</div></div>`}
+const ACC={rent:'acp',elec:'acp',salary:'acp',cleaner:'acp',end:'acp',swap:'acp',fee:'amaya',pe:'agc',split:'amix',tripspend:'agoty'};
+function itemHTML(r,t){const dn=isDone(r.k,t.id);let pill='';const ac=ACC[t.id]||(t.id.startsWith('fl_')?'acp':t.id.startsWith('trip-')?'agoty':'');
+ if(t.act){const vals=t.act.filter(([f])=>r.A[f]!=null).map(([f,l])=>(l.includes('₱')?PH(r.A[f]):NT(r.A[f])));
+  pill=`<button class="pill ${vals.length?'set':''}" onclick="event.stopPropagation();openAct('${r.k}','${t.id}')">${vals.length?'✓ Real amount':'✎ Real amount'}</button>`}
+ const real=(t.act||[]).filter(([f])=>r.A[f]!=null).map(([f,l,p,c])=>{const pre=l.replace(/ ?(NT\$|₱)$/,'').replace(/^(Paid|Received|Sent|Ticket price|Spent|Balance|Pesos you received)$/,'');let v;if(c==='flex'||c==='flexPhp'){v=r.A[f+'_cur']==='php'||(c==='flexPhp'&&r.A[f+'_cur']!=='nt')?PH(c==='flex'?r.A[f+'_orig']:r.A[f]):NT(c==='flex'?r.A[f]:r.A[f+'_orig'])}else v=l.includes('₱')?PH(r.A[f]):NT(r.A[f]);return(pre?pre+' ':'')+v});
+ return`<div class="task ${dn?'done':''} ibar ${ac}" onclick="toggle('${r.k}','${t.id}')"><div class="check">${dn?'✓':''}</div><div style="flex:1"><div class="t">${t.t}</div><div class="w">${t.w}</div>${real.length?`<div class="real">Real: ${real.join(' · ')}</div>`:''}${pill}</div></div>`}
 function openAct(k,id){const rows=plan(),r=rows.find(x=>x.k===k),t=tasks(r,rows).T.find(x=>x.id===id);
  const fld=([f,l,p,c])=>{if(c==='flex'||c==='flexPhp'){const php=c==='flexPhp'?(r.A[f+'_cur']!=='nt'):(r.A[f+'_cur']==='php');const shown=c==='flexPhp'?(php?r.A[f]:r.A[f+'_orig']):(php?r.A[f+'_orig']:r.A[f]);
    return`<label class="f"><span>${l} <span class="cur" id="c_${f}" data-c="${php?'php':'nt'}" onclick="event.preventDefault();flipCur('${f}')">${php?'₱ (tap for NT$)':'NT$ (tap for ₱)'}</span></span><input inputmode="decimal" id="x_${f}" placeholder="estimate: ${Math.round(c==='flexPhp'?(php?p:p/S.settings.rate):(php?p*S.settings.rate:p)).toLocaleString('en-US')}" value="${shown??''}"></label>`}
@@ -278,22 +280,22 @@ function saveBal(k,day){const r=plan().find(x=>x.k===k);const c=r.chk;const base
 function expNow(r,x,day){const S0=S.snap;S.snap={k:r.k,day,cp:0,mp2:0,maya:0,goty:0,gc:0};const e=plan().find(q=>q.k===r.k).chk.exp[x];S.snap=S0;return e}
 function postpone(fid,k){const f=S.settings.flights.find(x=>x.id===fid);let[y,m]=k.split('-').map(Number);m++;if(m>12){m=1;y++}f.book=key(y,m);save();closeSheet();toast('Moved to '+MN[m-1]);render()}
 function closeSheet(){$('#sheet').classList.remove('open')}
-const CATS=[['start','🏠','Start of month','#f39c35'],['pay','💼','Payday','#2fa36b'],['trip','✈️','Trips & flights','#8d5bd6'],['month','🧹','During the month','#3b6fd8'],['end','📋','End of month','#7f8c8d']];
-let showDone={};
-function renderToday(rows){const i=rows.findIndex(r=>r.k===cur),r=rows[i],{T,I}=tasks(r,rows),st=S.settings,goal=st.mp2Target+st.mayaTarget;
- const all=T.length+r.mondays.length,done=T.filter(t=>isDone(r.k,t.id)).length+r.mondays.filter(dd=>isDone(r.k,'mon'+dd)).length;
+function renderToday(rows){const i=rows.findIndex(r=>r.k===cur),r=rows[i],{T,I}=tasks(r,rows),st=S.settings;
+ const next=T.find(t=>!isDone(r.k,t.id)),goal=st.mp2Target+st.mayaTarget;
  const badge=r.full?'<span class="badge btrip">Trip</span>':(r.tax>0.1?'<span class="badge b18">18% tax</span>':'<span class="badge b5">5% tax</span>');
- const sec=([c,ic,name,col])=>{let items=T.filter(t=>t.cat===c);const open=items.filter(t=>!isDone(r.k,t.id)),closed=items.filter(t=>isDone(r.k,t.id));
-  let extra='';if(c==='month'&&r.mondays.length)extra=`<div class="mon"><div class="tt" style="margin-bottom:8px">Monday cash · ${NT(st.cash)}</div><div class="chips">${r.mondays.map(dd=>`<div class="chip ${isDone(r.k,'mon'+dd)?'on':''}" onclick="toggle('${r.k}','mon${dd}')">${isDone(r.k,'mon'+dd)?'✓ ':''}${MN[r.m-1]} ${dd}</div>`).join('')}</div></div>`;
-  if(!items.length&&!extra)return'';const key2=r.k+c;
-  return`<div class="sec" style="--c:${col}"><div class="sh"><span>${ic} ${name}</span><span class="cnt">${closed.length}/${items.length}</span></div>${open.map(t=>itemHTML(r,t)).join('')}${extra}${closed.length?(showDone[key2]?closed.map(t=>itemHTML(r,t)).join('')+`<div class="more" onclick="showDone['${key2}']=0;render()">Hide done</div>`:`<div class="more" onclick="showDone['${key2}']=1;render()">✓ ${closed.length} done · show</div>`):''}${!open.length&&!extra&&!showDone[key2]?'':''}</div>`};
- const c=r.chk;
- $('#app').innerHTML=`<header class="hero"><div><div class="sub">${r.y}</div><h1>${MNF[r.m-1]} ${badge}</h1><div class="prog"><i style="width:${all?done/all*100:0}%"></i></div><div class="sub">${done} of ${all} done</div></div><div class="monthnav"><button onclick="go(-1)">‹</button><button onclick="go(1)">›</button></div></header><main>
- ${I.length?`<div class="notes">${I.map(x=>`<div class="note">${x[0]} ${x[1]}</div>`).join('')}</div>`:''}
- ${CATS.map(sec).join('')}
- <div class="card"><h2>Spending budget</h2>${r.mondays.length?`<div class="row"><span>🇹🇼 Per week in Taiwan</span><span class="v">${NT((r.cash+r.cards)/Math.max(1,r.mondays.length))}</span></div><p class="small">Cash ${NT(st.cash)} + cards & apps ≈ ${NT(r.cards/Math.max(1,r.mondays.length))} · month total ${NT(r.cash+r.cards)}</p>`:''}${r.away&&r.trip?`<div class="row"><span>✈️ Trip per day</span><span class="v">${PH(r.tripPhp/r.away)}</span></div><p class="small">${PH(r.tripPhp)} this month from GoTyme</p>`:''}</div>
- <div class="card"><h2>My balances${c?' · '+MN[r.m-1]+' '+c.day:''}</h2>${c?[['cp','🏤 Chunghwa Post','nt'],['maya','💰 Maya','ph'],['mp2','🔒 MP2','ph'],['goty','✈️ GoTyme','ph'],['gc','📱 GCash','ph']].map(([x,l,u])=>{const dif=c.real[x]-c.exp[x],ok=Math.abs(dif)<(u==='nt'?500:1000),f=v=>u==='nt'?NT(v):PH(v);return`<div class="row"><span>${l}</span><span class="v">${f(c.real[x])}</span></div>${ok?'':`<div class="small" style="text-align:right;margin:-4px 0 6px">${dif<0?'↓ '+f(-dif)+' less':'↑ '+f(dif)+' more'} than expected</div>`}`}).join(''):'<p class="small">Type what your apps show. The app checks it against your checklist.</p>'}<button class="btn light" onclick="openBal('${r.k}')">Update my balances</button></div>
- <div class="card goal" onclick="tab='money';render()"><div class="ringwrap">${ring(r.total/goal,'#e8483f')}<div><div class="sub">₱${(goal/1e6).toFixed(1)}M goal</div><div class="big">${PH(r.total)}</div><div class="sub">🔒 MP2 ${PH(r.mp2)} · 💰 Maya ${PH(r.maya)}</div><div class="small" style="margin-top:4px">${goalLine(rows)}</div></div></div></div></main>`}
+ const nt=st.trips.find(t=>d(t.back)>=new Date(r.y,r.m-1,1));
+ $('#app').innerHTML=`<header><div><div class="sub">${r.y}</div><h1>${MNF[r.m-1]} ${badge}</h1></div><div class="monthnav"><button onclick="go(-1)">‹</button><button onclick="go(1)">›</button></div></header><main>
+
+ ${(()=>{const c=r.chk;const now=new Date(),isCur=now.getFullYear()===r.y&&now.getMonth()+1===r.m;
+ const val=x=>c?c.real[x]:(isCur?expNow(r,x,now.getDate()):r.acc0[x]);
+ const A=[['cp','Chunghwa Post','nt','acp'],['maya','Maya','ph','amaya'],['mp2','MP2','ph','amp2'],['goty','GoTyme','ph','agoty'],['gc','GCash','ph','agc']];
+ return`<div class="accts">${A.map(([x,l,u,cl])=>{const v=val(x),dif=c?c.real[x]-c.exp[x]:0,off=c&&Math.abs(dif)>=(u==='nt'?500:1000);return`<div class="acct ${cl}" onclick="openBal('${r.k}')"><div class="an">${l}</div><div class="av">${u==='nt'?NT(v):PH(v)}</div>${off?`<div class="ad">${dif<0?'↓':'↑'} ${u==='nt'?NT(Math.abs(dif)):PH(Math.abs(dif))} vs plan</div>`:''}</div>`}).join('')}<div class="acct aup" onclick="openBal('${r.k}')"><div class="an">${c?'Updated '+MN[r.m-1]+' '+c.day:'Estimate'}</div><div class="av" style="font-size:15px">✎ Update balances</div></div></div>`})()}
+ ${I.map(x=>`<div class="info ${x[0]==='🌴'?'trip':''}"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('')}
+ <div class="card"><h2>Checklist</h2>${T.map(t=>itemHTML(r,t)).join('')}</div>
+ ${r.mondays.length?`<div class="card"><h2>Monday cash · ${NT(st.cash)} each</h2><div class="chips">${r.mondays.map(dd=>`<div class="chip ${isDone(r.k,'mon'+dd)?'on':''}" onclick="toggle('${r.k}','mon${dd}')">${isDone(r.k,'mon'+dd)?'✓ ':''}${MN[r.m-1]} ${dd}</div>`).join('')}</div></div>`:''}
+ ${(()=>{const wk=Math.max(1,r.mondays.length),tw=r.cash+r.cards,days=dim(r.y,r.m),tripDays=r.away;
+ return`<div class="card"><h2>Spending budget · ${MN[r.m-1]}</h2>${r.mondays.length?`<div class="row"><span>🇹🇼 Taiwan, this month</span><span class="v">${NT(tw)}</span></div><div class="row"><span>Per week</span><span class="v">${NT(tw/wk)}</span></div><p class="small">Cash NT$${S.settings.cash.toLocaleString('en-US')} + cards & apps ≈ ${NT(r.cards/wk)} a week (food delivery, Uber, fun, phone).</p>`:''}${r.away&&r.trip?`<div class="row"><span>✈️ Trip (GoTyme)</span><span class="v">${PH(r.tripPhp)}</span></div><div class="row"><span>Per week · per day</span><span class="v">${PH(r.tripPhp/tripDays*7)} · ${PH(r.tripPhp/tripDays)}</span></div>`:''}</div>`})()}
+ <div class="card" onclick="tab='money';render()"><h2>₱${(goal/1e6).toFixed(1)}M goal · after ${MN[r.m-1]}</h2><div class="ringwrap">${ring(r.total/goal,'#e8483f')}<div><div class="big">${PH(r.total)}</div><div class="sub">🔒 MP2 ${PH(r.mp2)}</div><div class="sub">💰 Maya ${PH(r.maya)}</div>${r.pending?`<div class="sub">🏤 NT$ not yet changed ≈ ${PH(r.pending*st.rate)}</div>`:''}</div></div><p class="small">${goalLine(rows)}</p></div></main>`}
 function go(n){const rows=plan(),i=rows.findIndex(r=>r.k===cur);cur=rows[Math.max(0,Math.min(rows.length-1,i+n))].k;render()}
 function renderMonths(rows){$('#app').innerHTML=`<header><h1>Months</h1></header><main><div class="card mlist">${rows.map(r=>{const done=S.done[r.k]?Object.values(S.done[r.k]).filter(Boolean).length:0;return`<div class="m" onclick="cur='${r.k}';tab='today';render();scrollTo(0,0)"><div><b>${MN[r.m-1]} ${r.y}</b>${r.away?'<span class="badge btrip">Trip</span>':''}${r.extra?'<span class="badge baug">Bonus</span>':''}<div class="sub">Remit ${NT(r.appPlan)} · savings ${PH(r.toMp2+r.toMaya)}</div></div><div style="text-align:right"><span class="badge ${r.tax>0.1?'b18':'b5'}">${Math.round(r.tax*100)}%</span><div class="sub">${done?done+' done':''}</div></div></div>`}).join('')}</div></main>`}
 function renderMoney(rows){const r=rows.find(x=>x.k===cur)||rows[0],st=S.settings,last=rows[rows.length-1],A=r.A;
@@ -334,7 +336,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 15.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 16.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
