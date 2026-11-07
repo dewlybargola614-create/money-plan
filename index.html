@@ -223,8 +223,8 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  if(r.pending>0)T.push({id:'swap',t:NT(r.pending)+' left to change (NT$50,000 monthly limit reached)',w:'Teacher swap or bank transfer — or it waits for next month. It still counts toward your goal.',act:[['swap_nt','Changed NT$',0],['swap_php','Received ₱',0]]});
  const tgt=r.mp2<st.mp2Target||r.toMp2>0?'MP2':'a Maya Personal Goal (max ₱100,000 each)';
  T.push({id:'p_gc',t:'Send '+PH(r.gcashPhp)+' → GCash',w:'Mom ₱12,000 · vet ₱3,000',act:[['gcash_php','Sent ₱',r.gcashPhp]]});
- if(r.goPhp||r.A.goty_php!=null)T.push({id:'p_go',t:'Send '+PH(r.goPhp)+' → GoTyme',w:'Trip money',act:[['goty_php','Sent ₱',r.goPhp]]});
- if(r.toMp2||r.A.mp2_php!=null)T.push({id:'p_mp2',t:'Send '+PH(r.toMp2)+' → MP2',w:'Locked savings · Maya or Virtual Pag-IBIG',act:[['mp2_php','Sent ₱',r.toMp2]]});
+ T.push({id:'p_go',t:'Send '+PH(r.goPhp)+' → GoTyme',w:'Trip money',act:[['goty_php','Sent ₱',r.goPhp]]});
+ T.push({id:'p_mp2',t:'Send '+PH(r.toMp2)+' → MP2',w:'Locked savings · Maya or Virtual Pag-IBIG',act:[['mp2_php','Sent ₱',r.toMp2]]});
  T.push({id:'p_maya',t:'Send '+PH(r.toMaya)+' → Maya',w:'Savings you can reach · goals max ₱100,000 each',act:[['maya_php','Sent ₱',r.toMaya]]});
  if(r.cleanerP)T.push({id:'cleaner',t:'Pay the cleaner: ≈ '+NT(r.cleanerP),w:'This month',act:[['cleaner','Paid NT$',r.cleanerP]]});
  const nx=rows.find(x=>x.y*12+x.m===r.y*12+r.m+1);
@@ -343,7 +343,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 19.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 20.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
