@@ -37,6 +37,7 @@ main{padding:0 14px}
 .task .t{font-size:17px;line-height:1.3}
 .task .w{font-size:13px;color:var(--sub);margin-top:2px}
 .cur{margin-left:6px;font-size:12px;color:var(--blue);border:1px solid #dcd7d0;border-radius:10px;padding:2px 8px;background:#fff}
+.real{font-size:15px;font-weight:700;color:var(--green);margin-top:4px}
 .pill{margin-top:8px;border:1px solid #dcd7d0;background:#fff;border-radius:16px;padding:6px 12px;font-size:14px;font-weight:600;color:var(--blue)}
 .pill.set{border-color:var(--green);color:var(--green);background:#eef8f2}
 .act{display:flex;gap:8px;margin:8px 0 0 40px;flex-wrap:wrap}
@@ -155,7 +156,7 @@ function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2
   const feeP=Math.min(savP,st.capTx), peP=famP+Math.min(savP-feeP,st.capTx-famP), appPlan=feeP+peP;
   const feeNT=av(A,'fee_nt',av(A,'remit_nt',feeP)), peNT=av(A,'pe_nt',peP), appNT=feeNT+peNT;
   const swapNT=A.swap_nt||0;
-  pending=Math.max(0,due-appNT-swapNT); yearSent[y]=yr+appNT;
+  pending=Math.max(0,due-appPlan-swapNT); yearSent[y]=yr+appNT;
   const php=av(A,'fee_php',av(A,'remit_php',Math.round(feeNT*st.rate)))+av(A,'pe_php',Math.round(peNT*st.rate))+(A.swap_php!=null?A.swap_php:Math.round(swapNT*st.rate));
   const end=before+sal+extra+refund-cash-cards-cleaner-flights-appNT-swapNT;
   // where the pesos go: GCash first, GoTyme next, the rest is savings (MP2 until full, then Maya)
@@ -181,23 +182,23 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  if(r.refund)I.push(['💸','School pays back your summer PH tickets this month (≈'+NT(r.refund)+'), into your Chunghwa Post account.']);
  
  T.push({id:'rent',t:'Pay rent + water: '+NT(r.rentP),w:ab+' 1 · fixed'});
- T.push({id:'elec',t:'Pay electricity: '+(r.A.elec!=null?NT(r.A.elec):'≈ '+NT(r.elecP)),w:'NT$5 per kWh · changes every month',act:[['elec','Paid NT$',r.elecP]]});
- for(const f of r.legs)T.push({id:'fl_'+f.id,t:'Book '+f.name+(r.A['fl_'+f.id]!=null?': '+NT(r.A['fl_'+f.id]):''),w:'Budget ≈ '+NT(f.nt)+' (≈'+PH(f.nt*st.rate)+')'+(f.refund?' · school pays it back in '+MN[+f.refund.slice(5)-1]:''),act:[['fl_'+f.id,'Ticket price',f.nt,'flex']]});
- T.push({id:'salary',t:'Salary arrives in your Chunghwa Post account: '+(r.A.salary!=null?NT(r.A.salary):'≈ '+NT(r.netP)),w:ab+' 5–8'+(r.unpaid?' · '+r.unpaid+' unpaid days taken out':''),act:[['salary','Received NT$',r.netP]]});
+ T.push({id:'elec',t:'Pay electricity: ≈ '+NT(r.elecP),w:'NT$5 per kWh · changes every month',act:[['elec','Paid NT$',r.elecP]]});
+ for(const f of r.legs)T.push({id:'fl_'+f.id,t:'Book '+f.name,w:'Budget ≈ '+NT(f.nt)+' (≈'+PH(f.nt*st.rate)+')'+(f.refund?' · school pays it back in '+MN[+f.refund.slice(5)-1]:''),act:[['fl_'+f.id,'Ticket price',f.nt,'flex']]});
+ T.push({id:'salary',t:'Salary arrives in your Chunghwa Post account: ≈ '+NT(r.netP),w:ab+' 5–8'+(r.unpaid?' · '+r.unpaid+' unpaid days taken out':''),act:[['salary','Received NT$',r.netP]]});
  if(r.full)I.push(['🌴','Summer trip: nothing goes to savings this month. Spend with your GoTyme card: '+PH(r.trip?r.trip.php:0)+' budget (PH + abroad).']);
  if(r.extra)I.push(['🎁','Bonus + tax refund (≈'+NT(r.extra)+') arrive in your Chunghwa Post account this month.']);
- T.push({id:'fee',t:'FEE: change '+NT(r.feeNT)+' to pesos',w:'For savings (MP2 / Maya) · max '+NT(st.capTx)+' per transfer',act:[['fee_nt','Sent NT$',r.feeP],['fee_php','Pesos you received ₱',Math.round(r.feeP*st.rate)]]});
- if(r.peP>0||r.A.pe_nt!=null)T.push({id:'pe',t:'Pinoy Express: change '+NT(r.peNT)+' to pesos',w:'For GCash (family) + GoTyme (trips)',act:[['pe_nt','Sent NT$',r.peP],['pe_php','Pesos you received ₱',Math.round(r.peP*st.rate)]]});
+ T.push({id:'fee',t:'FEE: change '+NT(r.feeP)+' to pesos',w:'For savings (MP2 / Maya) · max '+NT(st.capTx)+' per transfer',act:[['fee_nt','Sent NT$',r.feeP],['fee_php','Pesos you received ₱',Math.round(r.feeP*st.rate)]]});
+ if(r.peP>0||r.A.pe_nt!=null)T.push({id:'pe',t:'Pinoy Express: change '+NT(r.peP)+' to pesos',w:'For GCash (family) + GoTyme (trips)',act:[['pe_nt','Sent NT$',r.peP],['pe_php','Pesos you received ₱',Math.round(r.peP*st.rate)]]});
  if(r.pending>0)T.push({id:'swap',t:NT(r.pending)+' left to change (NT$50,000 monthly limit reached)',w:'Teacher swap or bank transfer — or it waits for next month. It still counts toward your goal.',act:[['swap_nt','Changed NT$',0],['swap_php','Received ₱',0]]});
  const tgt=r.mp2<st.mp2Target||r.toMp2>0?'MP2':'a Maya Personal Goal (max ₱100,000 each)';
  const parts=['GCash '+PH(r.gcashPhp)];if(r.goPhp)parts.push('GoTyme '+PH(r.goPhp));if(r.toMp2)parts.push('MP2 '+PH(r.toMp2));if(r.toMaya)parts.push('Maya '+PH(r.toMaya));
  T.push({id:'split',t:'Send the pesos: '+parts.join(' · '),w:'GCash = Mom ₱12,000 + vet ₱3,000 + subs ₱1,900'+(r.toMaya?' · Maya goals max ₱100,000 each':''),
   act:[['gcash_php','GCash ₱',r.gcashPhp],['goty_php','GoTyme ₱',r.goPhp],['mp2_php','MP2 ₱',r.toMp2],['maya_php','Maya ₱',r.toMaya]]});
- if(r.cleanerP)T.push({id:'cleaner',t:'Pay the cleaner: '+(r.A.cleaner!=null?NT(r.A.cleaner):'≈ '+NT(r.cleanerP)),w:'This month',act:[['cleaner','Paid NT$',r.cleanerP]]});
+ if(r.cleanerP)T.push({id:'cleaner',t:'Pay the cleaner: ≈ '+NT(r.cleanerP),w:'This month',act:[['cleaner','Paid NT$',r.cleanerP]]});
  const nx=rows.find(x=>x.y*12+x.m===r.y*12+r.m+1);
  for(const t of st.trips){const o=d(t.out),here=o.getFullYear()===r.y&&o.getMonth()+1===r.m;
   if((here&&!r.full)||(nx&&nx.full&&nx.trip===t)){const have=r.goty+(here?r.tripPhp:0);T.push({id:'trip-'+t.out,t:'Before you fly: GoTyme ≈ '+PH(have)+' for '+t.name,w:'Budget '+PH(t.php)+(have>=t.php?' ✓ enough':' · short '+PH(t.php-have))+' · pay with your GoTyme card'})}}
- if(r.away&&r.trip)T.push({id:'tripspend',t:'Trip spending (GoTyme): '+(r.A.trip_php!=null?PH(r.A.trip_php):'budget '+PH(r.tripPhp)),w:r.full?'Whole month away':'Your days away this month',act:[['trip_php','Spent',r.tripPhp,'flexPhp']]});
+ if(r.away&&r.trip)T.push({id:'tripspend',t:'Trip spending (GoTyme): budget '+PH(r.tripPhp),w:r.full?'Whole month away':'Your days away this month',act:[['trip_php','Spent',r.tripPhp,'flexPhp']]});
  if(r.m===5)T.push({id:'tax',t:'FILE your '+(r.y-1)+' Taiwan income tax',w:'May 1–31 · no filing = no August refund'});
  if(r.m===8&&r.y===2028)T.push({id:'aprc',t:'APRC application',w:'August 2028'});
  T.push({id:'end',t:'Type your real Chunghwa Post balance',w:'End of '+ab+' · plan ≈ '+NT(r.end)+(r.pending?' (includes '+NT(r.pending)+' waiting to change)':''),act:[['end','Balance NT$',r.end]]});
@@ -220,7 +221,8 @@ function render(){const app=$('#app');
 function itemHTML(r,t){const dn=isDone(r.k,t.id);let pill='';
  if(t.act){const vals=t.act.filter(([f])=>r.A[f]!=null).map(([f,l])=>(l.includes('₱')?PH(r.A[f]):NT(r.A[f])));
   pill=`<button class="pill ${vals.length?'set':''}" onclick="event.stopPropagation();openAct('${r.k}','${t.id}')">${vals.length?'✓ Real amount':'✎ Real amount'}</button>`}
- return`<div class="task ${dn?'done':''}" onclick="toggle('${r.k}','${t.id}')"><div class="check">${dn?'✓':''}</div><div style="flex:1"><div class="t">${t.t}</div><div class="w">${t.w}</div>${pill}</div></div>`}
+ const real=(t.act||[]).filter(([f])=>r.A[f]!=null).map(([f,l,p,c])=>{const pre=l.replace(/ ?(NT\$|₱)$/,'').replace(/^(Paid|Received|Sent|Ticket price|Spent|Balance|Pesos you received)$/,'');let v;if(c==='flex'||c==='flexPhp'){v=r.A[f+'_cur']==='php'||(c==='flexPhp'&&r.A[f+'_cur']!=='nt')?PH(c==='flex'?r.A[f+'_orig']:r.A[f]):NT(c==='flex'?r.A[f]:r.A[f+'_orig'])}else v=l.includes('₱')?PH(r.A[f]):NT(r.A[f]);return(pre?pre+' ':'')+v});
+ return`<div class="task ${dn?'done':''}" onclick="toggle('${r.k}','${t.id}')"><div class="check">${dn?'✓':''}</div><div style="flex:1"><div class="t">${t.t}</div><div class="w">${t.w}</div>${real.length?`<div class="real">Real: ${real.join(' · ')}</div>`:''}${pill}</div></div>`}
 function openAct(k,id){const rows=plan(),r=rows.find(x=>x.k===k),t=tasks(r,rows).T.find(x=>x.id===id);
  const fld=([f,l,p,c])=>{if(c==='flex'||c==='flexPhp'){const php=c==='flexPhp'?(r.A[f+'_cur']!=='nt'):(r.A[f+'_cur']==='php');const shown=c==='flexPhp'?(php?r.A[f]:r.A[f+'_orig']):(php?r.A[f+'_orig']:r.A[f]);
    return`<label class="f"><span>${l} <span class="cur" id="c_${f}" data-c="${php?'php':'nt'}" onclick="event.preventDefault();flipCur('${f}')">${php?'₱ (tap for NT$)':'NT$ (tap for ₱)'}</span></span><input inputmode="decimal" id="x_${f}" placeholder="estimate: ${Math.round(c==='flexPhp'?(php?p:p/S.settings.rate):(php?p*S.settings.rate:p)).toLocaleString('en-US')}" value="${shown??''}"></label>`}
@@ -294,7 +296,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 12.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 13.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
