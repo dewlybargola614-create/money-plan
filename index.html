@@ -233,7 +233,6 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  if(r.away&&r.trip)T.push({id:'tripspend',t:'Trip spending (GoTyme): budget '+PH(r.tripPhp),w:r.full?'Whole month away':'Your days away this month',act:[['trip_php','Spent',r.tripPhp,'flexPhp']]});
  if(r.m===5)T.push({id:'tax',t:'FILE your '+(r.y-1)+' Taiwan income tax',w:'May 1–31 · no filing = no August refund'});
  if(r.m===8&&r.y===2028)T.push({id:'aprc',t:'APRC application',w:'August 2028'});
- T.push({id:'end',t:'Type your real Chunghwa Post balance',w:'End of '+ab+' · plan ≈ '+NT(r.end)+(r.pending?' (includes '+NT(r.pending)+' waiting to change)':''),act:[['end','Balance NT$',r.end]]});
  return{T,I}}
 function goalLine(rows){const st=S.settings,goal=st.mp2Target+st.mayaTarget,hit=rows.find(r=>r.total>=goal),last=rows[rows.length-1];
  return hit?'₱'+(goal/1e6).toFixed(1)+'M reached: <b>'+MN[hit.m-1]+' '+hit.y+'</b> ✓':'By '+MN[last.m-1]+' '+last.y+': '+PH(last.total)+' of '+PH(goal)}
@@ -344,7 +343,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 18.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 19.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
