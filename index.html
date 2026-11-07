@@ -129,7 +129,7 @@ function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2
   const mondays=[];for(let i=1;i<=days;i++)if(new Date(y,m-1,i).getDay()===1&&!away.has(i))mondays.push(i);
   const unpaid=unpaidDays(y,m),gross=st.gross-Math.round(st.gross/30*unpaid);
   const netP=gross-st.ins-Math.round(gross*tax)-lunch, sal=av(A,'salary',netP);
-  const rentP=st.rent+st.water, rent=av(A,'rent',rentP), elec=av(A,'elec',elecP);
+  const rentP=st.rent+st.water, rent=rentP, elec=av(A,'elec',elecP);
   const legs=st.flights.filter(f=>f.book===k), flights=legs.reduce((s,f)=>s+av(A,'fl_'+f.id,f.nt),0);
   const refLegs=st.flights.filter(f=>f.refund===k); let refund=0;for(const f of refLegs){const bk=S.actual[f.book]||{};refund+=av(bk,'fl_'+f.id,f.nt)}
   const extra=m===8&&st.refunds[y]!=null?Math.round(st.bonusGross*(1-st.bonusTax))+st.refunds[y]:0;
@@ -169,7 +169,7 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  if(r.div)I.push(['🎉','MP2 dividend for last year (≈'+PH(r.div)+') should be in your MP2 now.']);
  if(r.refund)I.push(['💸','School pays back your summer PH tickets this month (≈'+NT(r.refund)+'), into your Chunghwa Post account.']);
  if(r.saveNT<r.saveWant)I.push(['🛡️','Savings this month is '+NT(r.saveNT)+' instead of '+NT(r.saveWant)+', so your Chunghwa Post account stays above '+NT(st.floor)+'.']);
- T.push({id:'rent',t:'Pay rent + water: ≈ '+NT(r.rentP),w:ab+' 1',act:[['rent','Paid NT$',r.rentP]]});
+ T.push({id:'rent',t:'Pay rent + water: '+NT(r.rentP),w:ab+' 1 · fixed'});
  T.push({id:'elec',t:'Pay electricity: ≈ '+NT(r.elecP),w:'NT$5 per kWh · changes every month',act:[['elec','Paid NT$',r.elecP]]});
  for(const f of r.legs)T.push({id:'fl_'+f.id,t:'Book '+f.name,w:'Budget ≈ '+NT(f.nt)+' (≈'+PH(f.nt*st.rate)+')'+(f.refund?' · school pays it back in '+MN[+f.refund.slice(5)-1]:''),act:[['fl_'+f.id,'Ticket price NT$',f.nt]]});
  T.push({id:'salary',t:'Salary arrives in your Chunghwa Post account: ≈ '+NT(r.netP),w:ab+' 5–8'+(r.unpaid?' · '+r.unpaid+' unpaid days taken out':''),act:[['salary','Received NT$',r.netP]]});
@@ -224,7 +224,7 @@ function renderToday(rows){const i=rows.findIndex(r=>r.k===cur),r=rows[i],{T,I}=
 function go(n){const rows=plan(),i=rows.findIndex(r=>r.k===cur);cur=rows[Math.max(0,Math.min(rows.length-1,i+n))].k;render()}
 function renderMonths(rows){$('#app').innerHTML=`<header><h1>Months</h1></header><main><div class="card mlist">${rows.map(r=>{const done=S.done[r.k]?Object.values(S.done[r.k]).filter(Boolean).length:0;return`<div class="m" onclick="cur='${r.k}';tab='today';render();scrollTo(0,0)"><div><b>${MN[r.m-1]} ${r.y}</b>${r.away?'<span class="badge btrip">Trip</span>':''}${r.extra?'<span class="badge baug">Bonus</span>':''}<div class="sub">Remit ${NT(r.appPlan)} · savings ${PH(r.toMp2+r.toMaya)}</div></div><div style="text-align:right"><span class="badge ${r.tax>0.1?'b18':'b5'}">${Math.round(r.tax*100)}%</span><div class="sub">${done?done+' done':''}</div></div></div>`}).join('')}</div></main>`}
 function renderMoney(rows){const r=rows.find(x=>x.k===cur)||rows[0],st=S.settings,last=rows[rows.length-1],A=r.A;
- const parts=[['Rent & water',av(A,'rent',r.rentP),'#f39c35'],['Electricity',av(A,'elec',r.elecP),'#f7c046'],['Remitted to PH',r.appNT+r.swapNT,'#e8483f'],['Monday cash',r.cash,'#3b6fd8'],['Cards & fun',r.cards,'#1f9e9a'],['Cleaner',av(A,'cleaner',r.cleanerP),'#7f8c8d'],['Flights',r.legs.reduce((s,f)=>s+av(A,'fl_'+f.id,f.nt),0),'#c0392b']];
+ const parts=[['Rent & water',r.rentP,'#f39c35'],['Electricity',av(A,'elec',r.elecP),'#f7c046'],['Remitted to PH',r.appNT+r.swapNT,'#e8483f'],['Monday cash',r.cash,'#3b6fd8'],['Cards & fun',r.cards,'#1f9e9a'],['Cleaner',av(A,'cleaner',r.cleanerP),'#7f8c8d'],['Flights',r.legs.reduce((s,f)=>s+av(A,'fl_'+f.id,f.nt),0),'#c0392b']];
  const rest=r.sal+r.refund+r.extra-parts.reduce((s,p)=>s+p[1],0);parts.push(rest>=0?['Stays in Chunghwa Post',rest,'#2fa36b']:['Taken from Chunghwa Post balance',-rest,'#b8b8bd']);
  $('#app').innerHTML=`<header><div><div class="sub">Money</div><h1>${MN[r.m-1]} ${r.y}</h1></div><div class="monthnav"><button onclick="go(-1)">‹</button><button onclick="go(1)">›</button></div></header><main>
  <div class="card"><h2>Where this salary goes</h2><div class="ringwrap">${donut(parts)}<div><div class="sub">Salary</div><div class="big">${NT(r.sal)}</div>${r.extra?`<div class="sub">+ bonus & refund ${NT(r.extra)}</div>`:''}${r.refund?`<div class="sub">+ ticket refund ${NT(r.refund)}</div>`:''}</div></div>
