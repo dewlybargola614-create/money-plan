@@ -125,7 +125,7 @@ function unpaidDays(y,m){const L=S.settings.leave.find(l=>l.summer===key(y,m));r
 const av=(A,k,p)=>A[k]!=null?A[k]:p;
 let liveRate=null;function getRate(){if(liveRate)return Promise.resolve(liveRate);return fetch('https://open.er-api.com/v6/latest/TWD').then(r=>r.json()).then(j=>{liveRate=j.rates&&j.rates.PHP?+j.rates.PHP.toFixed(4):null;return liveRate||S.settings.rate}).catch(()=>S.settings.rate)}   // actual if typed, else plan
 // ---------- plan engine ----------
-function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2=st.mp2,goty=st.gotyme,pending=0;const mp2Hist={},yearSent={};
+function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2=st.mp2,goty=st.gotyme,gcash=st.gcash??11000,pending=0;const mp2Hist={},yearSent={};
  for(const[y,m]of monthsList()){const k=key(y,m),A=S.actual[k]||{};
   const away=awaySet(y,m),days=dim(y,m),frac=(days-away.size)/days,full=away.size>=28;
   const tax=(y>=st.highTaxFromYear&&st.highTaxMonths.includes(m))?0.18:0.05;
@@ -158,18 +158,32 @@ function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2
   const swapNT=A.swap_nt||0;
   pending=Math.max(0,due-appPlan-swapNT); yearSent[y]=yr+appNT;
   const php=av(A,'fee_php',av(A,'remit_php',Math.round(feeNT*st.rate)))+av(A,'pe_php',Math.round(peNT*st.rate))+(A.swap_php!=null?A.swap_php:Math.round(swapNT*st.rate));
-  const end=before+sal+extra+refund-cash-cards-cleaner-flights-appNT-swapNT;
-  // where the pesos go: GCash first, GoTyme next, the rest is savings (MP2 until full, then Maya)
+  // where the pesos go: GCash first, GoTyme next, the rest is savings
   const gcashPhp=av(A,'gcash_php',Math.min(php,Math.round(gcashNT*st.rate))), goPhp=av(A,'goty_php',Math.min(Math.max(0,php-gcashPhp),Math.round(goNT*st.rate))), savePhp=Math.max(0,php-gcashPhp-goPhp);
-  let div=0;if(m===3){const h=mp2Hist[y-1]||[];const avg=h.length?(h.reduce((a,b)=>a+b,0)+st.mp2*(12-h.length))/12:st.mp2;div=Math.round(avg*st.mp2Rate);mp2+=div}
-  maya+=Math.round(maya*(st.mayaNet??0.04)/12);
+  let div=0;if(m===3){const h=mp2Hist[y-1]||[];const avg=h.length?(h.reduce((a,b)=>a+b,0)+st.mp2*(12-h.length))/12:st.mp2;div=Math.round(avg*st.mp2Rate)}
+  const mInt=Math.round(maya*(st.mayaNet??0.04)/12), mp2c=mp2+div;
   const mayaFirst=k<=(st.mayaFirstUntil||'2026-12'), share=st.mp2Share??0.65;
-  let pM=mayaFirst?0:Math.min(Math.round(savePhp*share),Math.max(0,st.mp2Target-mp2)), pY=savePhp-pM;
-  if(maya>=st.mayaTarget&&!mayaFirst){pM=Math.min(savePhp,Math.max(0,st.mp2Target-mp2));pY=savePhp-pM}
+  let pM=mayaFirst?0:Math.min(Math.round(savePhp*share),Math.max(0,st.mp2Target-mp2c)), pY=savePhp-pM;
+  if(maya>=st.mayaTarget&&!mayaFirst){pM=Math.min(savePhp,Math.max(0,st.mp2Target-mp2c));pY=savePhp-pM}
   let toMp2=pM,toMaya=pY;
   if(A.mp2_php!=null&&A.maya_php!=null){toMp2=A.mp2_php;toMaya=A.maya_php}else if(A.mp2_php!=null){toMp2=A.mp2_php;toMaya=Math.max(0,savePhp-toMp2)}else if(A.maya_php!=null){toMaya=A.maya_php;toMp2=Math.max(0,savePhp-toMaya)}
-  mp2+=toMp2;maya+=toMaya;goty+=goPhp-tripPhp;(mp2Hist[y]=mp2Hist[y]||[]).push(mp2);
-  rows.push({y,m,k,A,feeP,peP,feeNT,peNT,tax,lunch,elecP,rentP,mondays,unpaid,netP,sal,legs,refund,extra,saveWant,saveNT,gcashNT,goNT,cash,cards,cleanerP,tripPhp,start,before,end,due,appPlan,appNT,swapNT,pending,yearSent:yearSent[y],php,gcashPhp,goPhp,toMp2,toMaya,div,maya,mp2,goty,total:maya+mp2+pending*st.rate,away:away.size,full,trip:tripOf(y,m),endAct:A.end});
+  // every checklist step moves money between accounts
+  const gcSpend=st.gcashSpend??16900;
+  const D=[['rent',{cp:-rentP}],['elec',{cp:-elec}],...legs.map(f=>['fl_'+f.id,{cp:-av(A,'fl_'+f.id,f.nt)}]),['salary',{cp:sal}],
+   ['fee',{cp:-feeNT,mp2:toMp2,maya:toMaya}],['pe',{cp:-peNT,gc:gcashPhp,goty:goPhp}],['swap',{cp:-swapNT}],['cleaner',{cp:-cleaner}],
+   ...mondays.map(dd=>['mon'+dd,{cp:-st.cash}]),['tripspend',{goty:-tripPhp}]];
+  const spread={cp:-cards,maya:mInt}, lump={cp:extra+refund,mp2:div,gc:-gcSpend};
+  const acc0={cp:start,mp2,maya,goty,gc:gcash}, ks=['cp','mp2','maya','goty','gc'];
+  const add=(o,d,f=1)=>{for(const x of ks)o[x]+=(d[x]||0)*f;return o};
+  const dn=S.done[k]||{}, sn=S.snap&&S.snap.k===k?S.snap:null;
+  let fin, chk=null;
+  if(sn){const f=Math.min(1,sn.day/days);const exp=add(add({...acc0},spread,f),f>=0.5?lump:{});for(const[id,d]of D)if(dn[id])add(exp,d);
+   chk={exp,real:{cp:sn.cp,mp2:sn.mp2,maya:sn.maya,goty:sn.goty,gc:sn.gc},day:sn.day};
+   fin=add(add({...chk.real},spread,1-f),f<0.5?lump:{});for(const[id,d]of D)if(!dn[id])add(fin,d)}
+  else{fin=add(add({...acc0},spread),lump);for(const[,d]of D)add(fin,d)}
+  const end=Math.round(fin.cp);
+  mp2=fin.mp2;maya=fin.maya;goty=fin.goty;gcash=fin.gc;(mp2Hist[y]=mp2Hist[y]||[]).push(mp2);
+  rows.push({y,m,k,A,feeP,peP,feeNT,peNT,tax,lunch,elecP,rentP,mondays,unpaid,netP,sal,legs,refund,extra,saveWant,saveNT,gcashNT,goNT,cash,cards,cleanerP,tripPhp,start,before,end,due,appPlan,appNT,swapNT,pending,yearSent:yearSent[y],php,gcashPhp,goPhp,toMp2,toMaya,div,maya,mp2,goty,gcash,chk,acc0,total:maya+mp2+pending*st.rate,away:away.size,full,trip:tripOf(y,m),endAct:A.end});
   bal=av(A,'end',end)}
  return rows}
 function splitApps(n){const c=S.settings.capTx;if(n<=0)return'';if(n<=c)return'one transfer (FEE or Pinoy Express)';return'FEE '+NT(Math.min(c,n))+' + Pinoy Express '+NT(n-Math.min(c,n))}
@@ -238,6 +252,17 @@ async function saveAct(k,id){const rows=plan(),r=rows.find(x=>x.k===k),t=tasks(r
    if(c==='flex')A[f]=cur==='php'?Math.round(n/rate):n; else A[f]=cur==='php'?n:Math.round(n*rate)}
   else A[f]=n}
  S.done[k]=S.done[k]||{};if(t.act.some(([f])=>A[f]!=null))S.done[k][id]=true;save();closeSheet();const y=scrollY;render();scrollTo(0,y)}
+function openBal(k){const rows=plan(),r=rows.find(x=>x.k===k),c=r.chk,dn=S.done[k]||{};
+ const now=new Date(),day=(now.getFullYear()===r.y&&now.getMonth()+1===r.m)?now.getDate():1;
+ const L=[['cp','Chunghwa Post (NT$)'],['maya','Maya — savings + goals (₱)'],['mp2','MP2 (₱)'],['goty','GoTyme (₱)'],['gc','GCash (₱)']];
+ $('#panel').innerHTML=`<h3>My balances now</h3><p class="small" style="margin:0 4px 8px">Open each app and copy the balance. Leave empty to keep the app's number.</p><div class="card">${L.map(([x,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" id="b_${x}" placeholder="app: ${Math.round(c?c.real[x]:r.acc0[x]).toLocaleString('en-US')}" value="${c?c.real[x]:''}"></label>`).join('')}</div>
+ <button class="btn" onclick="saveBal('${k}',${day})">Save</button><button class="btn light" onclick="closeSheet()">Cancel</button>`;$('#sheet').classList.add('open')}
+function saveBal(k,day){const r=plan().find(x=>x.k===k);const c=r.chk;const base=c?c.real:null;
+ // expected now (before saving) is the default for empty boxes
+ const S0=S.snap;S.snap=null;const r2=plan().find(x=>x.k===k);S.snap=S0;
+ const sn={k,day};for(const x of['cp','maya','mp2','goty','gc']){const v=$('#b_'+x).value.replace(/[^0-9.\-]/g,'');sn[x]=v===''?(base?base[x]:Math.round(expNow(r2,x,day))):Number(v)}
+ S.snap=sn;save();closeSheet();const y=scrollY;render();scrollTo(0,y)}
+function expNow(r,x,day){const S0=S.snap;S.snap={k:r.k,day,cp:0,mp2:0,maya:0,goty:0,gc:0};const e=plan().find(q=>q.k===r.k).chk.exp[x];S.snap=S0;return e}
 function closeSheet(){$('#sheet').classList.remove('open')}
 function renderToday(rows){const i=rows.findIndex(r=>r.k===cur),r=rows[i],{T,I}=tasks(r,rows),st=S.settings;
  const next=T.find(t=>!isDone(r.k,t.id)),goal=st.mp2Target+st.mayaTarget;
@@ -246,6 +271,9 @@ function renderToday(rows){const i=rows.findIndex(r=>r.k===cur),r=rows[i],{T,I}=
  $('#app').innerHTML=`<header><div><div class="sub">${r.y}</div><h1>${MNF[r.m-1]} ${badge}</h1></div><div class="monthnav"><button onclick="go(-1)">‹</button><button onclick="go(1)">›</button></div></header><main>
  ${next?`<div class="card next"><div class="label">Next step</div><div class="what">${next.t}</div><div class="when">${next.w}</div><button onclick="toggle('${r.k}','${next.id}')">Done ✓</button></div>`:`<div class="card next"><div class="label">This month</div><div class="what">All done! 🎉</div><div class="when">Nothing left for ${MNF[r.m-1]}.</div></div>`}
  ${I.map(x=>`<div class="info ${x[0]==='🌴'?'trip':''}"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('')}
+ ${(()=>{const c=r.chk,ex=c?c.exp:null;const L=[['cp','🏤 Chunghwa Post','nt'],['maya','💰 Maya','ph'],['mp2','🔒 MP2','ph'],['goty','✈️ GoTyme','ph'],['gc','📱 GCash','ph']];
+ const f=(v,u)=>u==='nt'?NT(v):PH(v);
+ return`<div class="card"><h2>My balances${c?' · '+MN[r.m-1]+' '+c.day:''}</h2>${c?L.map(([x,l,u])=>{const dif=c.real[x]-ex[x],ok=Math.abs(dif)<(u==='nt'?500:1000);return`<div class="row"><span>${l}</span><span class="v">${f(c.real[x],u)}</span></div>${ok?'':`<div class="small" style="text-align:right;margin:-4px 0 6px">${dif<0?'↓ '+f(-dif,u)+' less':'↑ '+f(dif,u)+' more'} than the app expected</div>`}`}).join('')+`<p class="small">${L.every(([x,,u])=>Math.abs(c.real[x]-ex[x])<(u==='nt'?500:1000))?'✓ Everything matches your checklist.':'A difference usually means something isn\'t ticked or typed yet (cash, a payment, a transfer). The plan now continues from your real balances.'}</p>`:'<p class="small">Type what your apps show right now. The app checks it against your checklist and continues from your real numbers.</p>'}<button class="btn light" onclick="openBal('${r.k}')">Update my balances</button></div>`})()}
  <div class="card"><h2>Checklist</h2>${T.map(t=>itemHTML(r,t)).join('')}</div>
  ${r.mondays.length?`<div class="card"><h2>Monday cash · ${NT(st.cash)} each</h2><div class="chips">${r.mondays.map(dd=>`<div class="chip ${isDone(r.k,'mon'+dd)?'on':''}" onclick="toggle('${r.k}','mon${dd}')">${isDone(r.k,'mon'+dd)?'✓ ':''}${MN[r.m-1]} ${dd}</div>`).join('')}</div></div>`:''}
  ${(()=>{const wk=Math.max(1,r.mondays.length),tw=r.cash+r.cards,days=dim(r.y,r.m),tripDays=r.away;
@@ -288,7 +316,7 @@ const FIELDS=[['Each payday',[['save5','Savings — 5% tax months (NT$)'],['save
 ['Savings split',[['mp2Share','Share to MP2 after Maya-first months (0.65 = 65%)']]],
 ['Bills & spending',[['rent','Rent (NT$)'],['water','Water (NT$)'],['elecNormal','Electricity estimate, normal (NT$)'],['elecSummer','Electricity estimate, summer (NT$)'],['cleaner','Cleaner / month (NT$)'],['delivery','Food delivery / month (NT$)'],['uber','Uber / taxi / month (NT$)'],['fun','Local trips & fun / month (NT$)'],['phone','Phone (NT$)'],['spotify','Spotify (NT$)']]],
 ['Pay',[['gross','Gross pay incl. housing (NT$)'],['ins','Insurance (NT$)'],['lunch','Lunch fee per semester (NT$)'],['bonusGross','Bonus (NT$)']]],
-['Accounts & goals',[['startBal','Chunghwa Post at start (NT$)'],['mp2','MP2 at start (₱)'],['maya','Maya at start (₱)'],['gotyme','GoTyme at start (₱)'],['mp2Target','MP2 goal (₱)'],['mayaTarget','Maya goal (₱)'],['mp2Rate','MP2 dividend rate (0.0712 = 7.12%)'],['mayaNet','Maya interest after tax (0.04 = 4%)'],['rate','₱ per NT$1 (planning rate)']]]];
+['Accounts & goals',[['startBal','Chunghwa Post at start (NT$)'],['mp2','MP2 at start (₱)'],['maya','Maya at start (₱)'],['gotyme','GoTyme at start (₱)'],['gcash','GCash at start (₱)'],['gcashSpend','GCash spent per month (₱): Mom + vet + subs'],['mp2Target','MP2 goal (₱)'],['mayaTarget','Maya goal (₱)'],['mp2Rate','MP2 dividend rate (0.0712 = 7.12%)'],['mayaNet','Maya interest after tax (0.04 = 4%)'],['rate','₱ per NT$1 (planning rate)']]]];
 function renderSettings(){const st=S.settings;
  $('#app').innerHTML=`<header><h1>Settings</h1></header><main>
  ${FIELDS.map(([g,fs])=>`<div class="card"><h2>${g}</h2>${fs.map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${st[f]??''}" onchange="setNum('${f}',this.value)"></label>`).join('')}</div>`).join('')}
@@ -296,7 +324,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 13.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 14.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
