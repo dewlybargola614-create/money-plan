@@ -270,7 +270,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 8.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 9.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
@@ -280,7 +280,7 @@ function backup(){const c=btoa(unescape(encodeURIComponent(JSON.stringify(S))));
 function restore(){try{S=JSON.parse(decodeURIComponent(escape(atob($('#bk').value.trim()))));save();cur=null;tab='today';render();scrollTo(0,0)}catch(e){toast('That code didn\'t work')}}
 function toast(t){const b=document.createElement('div');b.textContent=t;b.style.cssText='position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#1d1d1f;color:#fff;padding:10px 18px;border-radius:20px;z-index:20;font-weight:600';document.body.appendChild(b);setTimeout(()=>b.remove(),1600)}
 render();
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(()=>{});let rl=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!rl){rl=true;location.reload()}})}
 </script>
 </body>
 </html>
