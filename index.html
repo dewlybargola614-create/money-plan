@@ -151,17 +151,22 @@ function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2
   // remittance: apps limited per transaction / month / year; anything over waits for a teacher swap or bank transfer
   const due=gcashNT+goNT+saveNT+pending+extra;
   const yr=yearSent[y]||0, appRoom=Math.max(0,Math.min(st.capMonth,st.capYear-yr));
-  const appPlan=Math.min(due,appRoom), feeP=Math.min(appPlan,st.capTx), peP=appPlan-feeP;
+  const fam=gcashNT+goNT, sav=due-fam, famP=Math.min(fam,appRoom,st.capTx), savP=Math.min(sav,appRoom-famP);
+  const feeP=Math.min(savP,st.capTx), peP=famP+Math.min(savP-feeP,st.capTx-famP), appPlan=feeP+peP;
   const feeNT=av(A,'fee_nt',av(A,'remit_nt',feeP)), peNT=av(A,'pe_nt',peP), appNT=feeNT+peNT;
   const swapNT=A.swap_nt||0;
   pending=Math.max(0,due-appNT-swapNT); yearSent[y]=yr+appNT;
   const php=av(A,'fee_php',av(A,'remit_php',Math.round(feeNT*st.rate)))+av(A,'pe_php',Math.round(peNT*st.rate))+(A.swap_php!=null?A.swap_php:Math.round(swapNT*st.rate));
   const end=before+sal+extra+refund-cash-cards-cleaner-flights-appNT-swapNT;
   // where the pesos go: GCash first, GoTyme next, the rest is savings (MP2 until full, then Maya)
-  const gcashPhp=Math.min(php,Math.round(gcashNT*st.rate)), goPhp=Math.min(php-gcashPhp,Math.round(goNT*st.rate)), savePhp=php-gcashPhp-goPhp;
+  const gcashPhp=av(A,'gcash_php',Math.min(php,Math.round(gcashNT*st.rate))), goPhp=av(A,'goty_php',Math.min(Math.max(0,php-gcashPhp),Math.round(goNT*st.rate))), savePhp=Math.max(0,php-gcashPhp-goPhp);
   let div=0;if(m===3){const h=mp2Hist[y-1]||[];const avg=h.length?(h.reduce((a,b)=>a+b,0)+st.mp2*(12-h.length))/12:st.mp2;div=Math.round(avg*st.mp2Rate);mp2+=div}
   maya+=Math.round(maya*(st.mayaNet??0.04)/12);
-  const toMp2=Math.min(savePhp,Math.max(0,st.mp2Target-mp2)), toMaya=savePhp-toMp2;
+  const mayaFirst=k<=(st.mayaFirstUntil||'2026-12'), share=st.mp2Share??0.65;
+  let pM=mayaFirst?0:Math.min(Math.round(savePhp*share),Math.max(0,st.mp2Target-mp2)), pY=savePhp-pM;
+  if(maya>=st.mayaTarget&&!mayaFirst){pM=Math.min(savePhp,Math.max(0,st.mp2Target-mp2));pY=savePhp-pM}
+  let toMp2=pM,toMaya=pY;
+  if(A.mp2_php!=null&&A.maya_php!=null){toMp2=A.mp2_php;toMaya=A.maya_php}else if(A.mp2_php!=null){toMp2=A.mp2_php;toMaya=Math.max(0,savePhp-toMp2)}else if(A.maya_php!=null){toMaya=A.maya_php;toMp2=Math.max(0,savePhp-toMaya)}
   mp2+=toMp2;maya+=toMaya;goty+=goPhp-tripPhp;(mp2Hist[y]=mp2Hist[y]||[]).push(mp2);
   rows.push({y,m,k,A,feeP,peP,feeNT,peNT,tax,lunch,elecP,rentP,mondays,unpaid,netP,sal,legs,refund,extra,saveWant,saveNT,gcashNT,goNT,cash,cards,cleanerP,tripPhp,start,before,end,due,appPlan,appNT,swapNT,pending,yearSent:yearSent[y],php,gcashPhp,goPhp,toMp2,toMaya,div,maya,mp2,goty,total:maya+mp2+pending*st.rate,away:away.size,full,trip:tripOf(y,m),endAct:A.end});
   bal=av(A,'end',end)}
@@ -181,12 +186,13 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  T.push({id:'salary',t:'Salary arrives in your Chunghwa Post account: '+(r.A.salary!=null?NT(r.A.salary):'≈ '+NT(r.netP)),w:ab+' 5–8'+(r.unpaid?' · '+r.unpaid+' unpaid days taken out':''),act:[['salary','Received NT$',r.netP]]});
  if(r.full)I.push(['🌴','Summer trip: nothing goes to savings this month. Spend with your GoTyme card: '+PH(r.trip?r.trip.php:0)+' budget (PH + abroad).']);
  if(r.extra)I.push(['🎁','Bonus + tax refund (≈'+NT(r.extra)+') arrive in your Chunghwa Post account this month.']);
- T.push({id:'fee',t:'FEE: change '+NT(r.feeNT)+' to pesos',w:'Remit app 1 · max '+NT(st.capTx)+' per transfer · ≈ '+PH(r.feeP*st.rate)+' at the usual rate',act:[['fee_nt','Sent NT$',r.feeP],['fee_php','Pesos you received ₱',Math.round(r.feeP*st.rate)]]});
- if(r.peP>0||r.A.pe_nt!=null)T.push({id:'pe',t:'Pinoy Express: change '+NT(r.peNT)+' to pesos',w:'Remit app 2 · ≈ '+PH(r.peP*st.rate)+' at the usual rate',act:[['pe_nt','Sent NT$',r.peP],['pe_php','Pesos you received ₱',Math.round(r.peP*st.rate)]]});
+ T.push({id:'fee',t:'FEE: change '+NT(r.feeNT)+' to pesos',w:'For savings (MP2 / Maya) · max '+NT(st.capTx)+' per transfer',act:[['fee_nt','Sent NT$',r.feeP],['fee_php','Pesos you received ₱',Math.round(r.feeP*st.rate)]]});
+ if(r.peP>0||r.A.pe_nt!=null)T.push({id:'pe',t:'Pinoy Express: change '+NT(r.peNT)+' to pesos',w:'For GCash (family) + GoTyme (trips)',act:[['pe_nt','Sent NT$',r.peP],['pe_php','Pesos you received ₱',Math.round(r.peP*st.rate)]]});
  if(r.pending>0)T.push({id:'swap',t:NT(r.pending)+' left to change (NT$50,000 monthly limit reached)',w:'Teacher swap or bank transfer — or it waits for next month. It still counts toward your goal.',act:[['swap_nt','Changed NT$',0],['swap_php','Received ₱',0]]});
  const tgt=r.mp2<st.mp2Target||r.toMp2>0?'MP2':'a Maya Personal Goal (max ₱100,000 each)';
- const parts=['GCash '+PH(r.gcashPhp)];if(r.goPhp)parts.push('GoTyme '+PH(r.goPhp));if(r.toMp2)parts.push('MP2 '+PH(r.toMp2));if(r.toMaya)parts.push('Maya goal '+PH(r.toMaya));
- T.push({id:'split',t:'Send the pesos: '+parts.join(' · '),w:'GCash = Mom ₱12,000 + vet ₱3,000 + subs ₱1,900'+(r.toMaya?' · Maya goals max ₱100,000 each':'')});
+ const parts=['GCash '+PH(r.gcashPhp)];if(r.goPhp)parts.push('GoTyme '+PH(r.goPhp));if(r.toMp2)parts.push('MP2 '+PH(r.toMp2));if(r.toMaya)parts.push('Maya '+PH(r.toMaya));
+ T.push({id:'split',t:'Send the pesos: '+parts.join(' · '),w:'GCash = Mom ₱12,000 + vet ₱3,000 + subs ₱1,900'+(r.toMaya?' · Maya goals max ₱100,000 each':''),
+  act:[['gcash_php','GCash ₱',r.gcashPhp],['goty_php','GoTyme ₱',r.goPhp],['mp2_php','MP2 ₱',r.toMp2],['maya_php','Maya ₱',r.toMaya]]});
  if(r.cleanerP)T.push({id:'cleaner',t:'Pay the cleaner: '+(r.A.cleaner!=null?NT(r.A.cleaner):'≈ '+NT(r.cleanerP)),w:'This month',act:[['cleaner','Paid NT$',r.cleanerP]]});
  const nx=rows.find(x=>x.y*12+x.m===r.y*12+r.m+1);
  for(const t of st.trips){const o=d(t.out),here=o.getFullYear()===r.y&&o.getMonth()+1===r.m;
@@ -277,6 +283,7 @@ function renderMoney(rows){const r=rows.find(x=>x.k===cur)||rows[0],st=S.setting
  <p class="small" style="font-size:15px;color:var(--ink)">${goalLine(rows)}</p><p class="small">Uses ${st.rate.toFixed(2)} ₱ per NT$1 until you type what you really received.</p></div></main>`}
 const FIELDS=[['Each payday',[['save5','Savings — 5% tax months (NT$)'],['save18','Savings — 18% tax months (NT$)'],['tripFund','GoTyme for trips (NT$)'],['tfJuly','GoTyme in July (NT$)'],['gcashNT','GCash — Mom & subs (NT$)'],['cash','Monday cash (NT$)'],['floor','Keep at least this in Chunghwa Post (NT$)']]],
 ['Remit app limits',[['capTx','Per transfer (NT$)'],['capMonth','Per month, FEE + Pinoy Express together (NT$)'],['capYear','Per year, all apps (NT$)']]],
+['Savings split',[['mp2Share','Share to MP2 after Maya-first months (0.65 = 65%)']]],
 ['Bills & spending',[['rent','Rent (NT$)'],['water','Water (NT$)'],['elecNormal','Electricity estimate, normal (NT$)'],['elecSummer','Electricity estimate, summer (NT$)'],['cleaner','Cleaner / month (NT$)'],['delivery','Food delivery / month (NT$)'],['uber','Uber / taxi / month (NT$)'],['fun','Local trips & fun / month (NT$)'],['phone','Phone (NT$)'],['spotify','Spotify (NT$)']]],
 ['Pay',[['gross','Gross pay incl. housing (NT$)'],['ins','Insurance (NT$)'],['lunch','Lunch fee per semester (NT$)'],['bonusGross','Bonus (NT$)']]],
 ['Accounts & goals',[['startBal','Chunghwa Post at start (NT$)'],['mp2','MP2 at start (₱)'],['maya','Maya at start (₱)'],['gotyme','GoTyme at start (₱)'],['mp2Target','MP2 goal (₱)'],['mayaTarget','Maya goal (₱)'],['mp2Rate','MP2 dividend rate (0.0712 = 7.12%)'],['mayaNet','Maya interest after tax (0.04 = 4%)'],['rate','₱ per NT$1 (planning rate)']]]];
@@ -287,7 +294,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 11.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 12.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
