@@ -190,6 +190,12 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  if(r.m===8&&r.y===2028)T.push({id:'aprc',t:'APRC application',w:'August 2028'});
  T.push({id:'end',t:'Type your real Chunghwa Post balance',w:'End of '+ab+' · plan ≈ '+NT(r.end)+(r.pending?' (includes '+NT(r.pending)+' waiting to change)':''),act:[['end','Balance NT$',r.end]]});
  return{T,I}}
+function reachDate(rows){const st=S.settings,goal=st.mp2Target+st.mayaTarget;
+ const hit=rows.find(r=>r.total>=goal);if(hit)return{y:hit.y,m:hit.m,swap:null};
+ const last=rows[rows.length-1];let tot=last.total,pend=last.pending,y=last.y,m=last.m;
+ for(let i=0;i<36&&tot<goal;i++){m++;if(m>12){m=1;y++}const c=Math.min(pend,st.capMonth);pend-=c;tot+=c*st.rate+(tot-last.mp2)*(st.mayaNet??0.04)/12;if(pend<=0&&tot<goal)return{y:null}}
+ return{y,m,swapTot:last.total+last.pending*st.rate>=goal?{y:last.y,m:last.m}:null}}
+function goalLine(rows){const r=reachDate(rows);if(!r.y)return'Not reached with the current plan';let t='₱1.5M reached ≈ <b>'+MN[r.m-1]+' '+r.y+'</b>';if(r.swapTot)t+=' · or <b>'+MN[r.swapTot.m-1]+' '+r.swapTot.y+'</b> if you change the August money by teacher swap / bank';return t}
 // ---------- UI ----------
 let tab='today',cur=null;
 function rowsNow(){const rows=plan();if(!cur){const n=new Date(),k=key(n.getFullYear(),n.getMonth()+1);const i=rows.findIndex(r=>r.k>=k);cur=rows[Math.max(0,i)].k}return rows}
@@ -220,7 +226,7 @@ function renderToday(rows){const i=rows.findIndex(r=>r.k===cur),r=rows[i],{T,I}=
  ${r.pending?`<div class="row"><span>⏳ Waiting to change to ₱</span><span class="v">${NT(r.pending)}</span></div>`:''}
  <div class="row"><span>✈️ GoTyme (trips)</span><span class="v ${r.goty<0?'warn':''}">${PH(r.goty)}</span></div>
  ${nt?`<p class="small">Next: ${nt.name} (${MN[d(nt.out).getMonth()]} ${d(nt.out).getDate()}) · budget ${PH(nt.php)}</p>`:''}</div>
- <div class="card" onclick="tab='money';render()"><h2>₱${(goal/1e6).toFixed(1)}M goal · after ${MN[r.m-1]}</h2><div class="ringwrap">${ring(r.total/goal,'#e8483f')}<div><div class="big">${PH(r.total)}</div><div class="sub">🔒 MP2 ${PH(r.mp2)}</div><div class="sub">💰 Maya ${PH(r.maya)}</div></div></div></div></main>`}
+ <div class="card" onclick="tab='money';render()"><h2>₱${(goal/1e6).toFixed(1)}M goal · after ${MN[r.m-1]}</h2><div class="ringwrap">${ring(r.total/goal,'#e8483f')}<div><div class="big">${PH(r.total)}</div><div class="sub">🔒 MP2 ${PH(r.mp2)}</div><div class="sub">💰 Maya ${PH(r.maya)}</div></div></div><p class="small">${goalLine(rows)}</p></div></main>`}
 function go(n){const rows=plan(),i=rows.findIndex(r=>r.k===cur);cur=rows[Math.max(0,Math.min(rows.length-1,i+n))].k;render()}
 function renderMonths(rows){$('#app').innerHTML=`<header><h1>Months</h1></header><main><div class="card mlist">${rows.map(r=>{const done=S.done[r.k]?Object.values(S.done[r.k]).filter(Boolean).length:0;return`<div class="m" onclick="cur='${r.k}';tab='today';render();scrollTo(0,0)"><div><b>${MN[r.m-1]} ${r.y}</b>${r.away?'<span class="badge btrip">Trip</span>':''}${r.extra?'<span class="badge baug">Bonus</span>':''}<div class="sub">Remit ${NT(r.appPlan)} · savings ${PH(r.toMp2+r.toMaya)}</div></div><div style="text-align:right"><span class="badge ${r.tax>0.1?'b18':'b5'}">${Math.round(r.tax*100)}%</span><div class="sub">${done?done+' done':''}</div></div></div>`}).join('')}</div></main>`}
 function renderMoney(rows){const r=rows.find(x=>x.k===cur)||rows[0],st=S.settings,last=rows[rows.length-1],A=r.A;
@@ -247,7 +253,7 @@ function renderMoney(rows){const r=rows.find(x=>x.k===cur)||rows[0],st=S.setting
  <div class="row" style="margin-top:8px"><span>💰 Maya → ${PH(st.mayaTarget)}</span><span class="v">${PH(last.maya)}</span></div>${bar(last.maya,st.mayaTarget,'var(--green)')}
  ${last.pending?`<div class="row" style="margin-top:8px"><span>⏳ Still waiting to change</span><span class="v">${NT(last.pending)} ≈ ${PH(last.pending*st.rate)}</span></div>`:''}
  <div class="row" style="margin-top:8px"><span><b>Total in PH</b></span><span class="v">${PH(last.total)}</span></div>
- <p class="small">Uses ${st.rate.toFixed(2)} ₱ per NT$1 until you type what you really received.</p></div></main>`}
+ <p class="small" style="font-size:15px;color:var(--ink)">${goalLine(rows)}</p><p class="small">Uses ${st.rate.toFixed(2)} ₱ per NT$1 until you type what you really received. After Aug 2028 it only counts changing the money still waiting (max ${NT(st.capMonth)} a month by remit app).</p></div></main>`}
 const FIELDS=[['Each payday',[['save5','Savings — 5% tax months (NT$)'],['save18','Savings — 18% tax months (NT$)'],['tripFund','GoTyme for trips (NT$)'],['tfJuly','GoTyme in July (NT$)'],['gcashNT','GCash — Mom & subs (NT$)'],['cash','Monday cash (NT$)'],['floor','Keep at least this in Chunghwa Post (NT$)']]],
 ['Remit app limits',[['capTx','Per transfer (NT$)'],['capMonth','Per month, all apps (NT$)'],['capYear','Per year, all apps (NT$)']]],
 ['Bills & spending',[['rent','Rent (NT$)'],['water','Water (NT$)'],['elecNormal','Electricity estimate, normal (NT$)'],['elecSummer','Electricity estimate, summer (NT$)'],['cleaner','Cleaner / month (NT$)'],['delivery','Food delivery / month (NT$)'],['uber','Uber / taxi / month (NT$)'],['fun','Local trips & fun / month (NT$)'],['phone','Phone (NT$)'],['spotify','Spotify (NT$)']]],
