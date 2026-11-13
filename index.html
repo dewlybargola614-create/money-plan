@@ -184,23 +184,29 @@ function plan(){const st=S.settings,rows=[];let bal=st.startBal,maya=st.maya,mp2
   let toMp2=pM,toMaya=pY;
   if(A.mp2_php!=null&&A.maya_php!=null){toMp2=A.mp2_php;toMaya=A.maya_php}else if(A.mp2_php!=null){toMp2=A.mp2_php;toMaya=Math.max(0,savePhp-toMp2)}else if(A.maya_php!=null){toMaya=A.maya_php;toMp2=Math.max(0,savePhp-toMaya)}
   // every checklist step moves money between accounts
-  const gcSpend=st.gcashSpend??16900;
+  const gcSpend=av(A,'gc_out',st.gcashSpend??15000), subs=av(A,'subs',st.mayaSpend??1900), cardsR=av(A,'cards',cards);
+  const extraR=av(A,'extra',extra), refundR=av(A,'refund',refund);
+  // every money movement is a checklist item: ticked = already in your balances, not ticked = still to happen
   const D=[['rent',{cp:-rentP}],['elec',{cp:-elec}],...legs.map(f=>['fl_'+f.id,{cp:-av(A,'fl_'+f.id,f.nt)}]),['salary',{cp:sal}],
-   ['fee',{cp:-feeNT}],['pe',{cp:-peNT}],['p_gc',{gc:gcashPhp}],['p_go',{goty:goPhp}],['p_mp2',{mp2:toMp2}],['p_maya',{maya:toMaya}],['swap',{cp:-swapNT}],['cleaner',{cp:-cleaner}],
+   ...(extra?[['extra',{cp:extraR}]]:[]),...(refund?[['refund',{cp:refundR}]]:[]),
+   ['fee',{cp:-feeNT}],['pe',{cp:-peNT}],['p_gc',{gc:gcashPhp}],['p_go',{goty:goPhp}],['p_mp2',{mp2:toMp2}],['p_maya',{maya:toMaya}],['swap',{cp:-swapNT}],
+   ['gc_out',{gc:-gcSpend}],['subs',{maya:-subs}],['cleaner',{cp:-cleaner}],['cards',{cp:-cardsR}],
    ...mondays.map(dd=>['mon'+dd,{cp:-st.cash}]),['tripspend',{goty:-tripPhp}]];
-  const spread={cp:-cards,maya:mInt}, lump={cp:extra+refund,mp2:div,gc:-gcSpend,maya:-(st.mayaSpend??0)};
+  const auto={maya:mInt,mp2:div};   // only interest/dividends happen on their own
   const acc0={cp:start,mp2,maya,goty,gc:gcash}, ks=['cp','mp2','maya','goty','gc'];
   const add=(o,d,f=1)=>{for(const x of ks)o[x]+=(d[x]||0)*f;return o};
   const dn=S.done[k]||{}, sn=S.snap&&S.snap.k===k?S.snap:null, closed=!!(S.closed&&S.closed[k]);
-  let fin, chk=null;
-  if(sn){const f=Math.min(1,sn.day/days);const exp=add(add({...acc0},spread,f),f>=0.5?lump:{});for(const[id,d]of D)if(dn[id])add(exp,d);
+  let fin, chk=null, left=[];
+  if(sn){const f=Math.min(1,sn.day/days);
+   const exp=add({...acc0},auto,f);for(const[id,d]of D)if(dn[id])add(exp,d);
    chk={exp,real:{cp:sn.cp,mp2:sn.mp2,maya:sn.maya,goty:sn.goty,gc:sn.gc},day:sn.day};
-   fin=add(add({...chk.real},spread,1-f),f<0.5?lump:{});for(const[id,d]of D)if(!dn[id]&&!closed)add(fin,d)}
-  else{fin=add(add({...acc0},spread),lump);for(const[id,d]of D)if(!closed||dn[id])add(fin,d)}
+   fin=add({...chk.real},auto,1-f);
+   for(const[id,d]of D)if(!dn[id]&&!closed){const g=id==='cards'?1-f:1;add(fin,d,g);left.push([id,d,g])}}
+  else{fin=add({...acc0},auto);for(const[id,d]of D)if(!closed||dn[id]){add(fin,d);if(!dn[id])left.push([id,d,1])}}
   if(closed){const mon=mondays.filter(dd=>!dn['mon'+dd]).length;if(!sn)fin.cp+=mon*st.cash;if(!dn.fee)pending+=feeNT;if(!dn.pe)pending+=peNT}
   const end=Math.round(fin.cp);
   mp2=fin.mp2;maya=fin.maya;goty=fin.goty;gcash=fin.gc;(mp2Hist[y]=mp2Hist[y]||[]).push(mp2);
-  rows.push({y,m,k,A,feeP,peP,feeNT,peNT,tax,lunch,elecP,rentP,mondays,unpaid,netP,sal,legs,refund,extra,saveWant,saveNT,gcashNT,goNT,cash,cards,cleanerP,tripPhp,start,before,end,due,appPlan,appNT,swapNT,pending,yearSent:yearSent[y],php,gcashPhp,goPhp,toMp2,toMaya,div,maya,mp2,goty,gcash,chk,acc0,total:maya+mp2+pending*st.rate,away:away.size,full,trip:tripOf(y,m),endAct:A.end});
+  rows.push({y,m,k,A,left,gcSpend,subs,extraR,refundR,feeP,peP,feeNT,peNT,tax,lunch,elecP,rentP,mondays,unpaid,netP,sal,legs,refund,extra,saveWant,saveNT,gcashNT,goNT,cash,cards,cleanerP,tripPhp,start,before,end,due,appPlan,appNT,swapNT,pending,yearSent:yearSent[y],php,gcashPhp,goPhp,toMp2,toMaya,div,maya,mp2,goty,gcash,chk,acc0,total:maya+mp2+pending*st.rate,away:away.size,full,trip:tripOf(y,m),endAct:A.end});
   bal=av(A,'end',end)}
  return rows}
 function splitApps(n){const c=S.settings.capTx;if(n<=0)return'';if(n<=c)return'one transfer (FEE or Pinoy Express)';return'FEE '+NT(Math.min(c,n))+' + Pinoy Express '+NT(n-Math.min(c,n))}
@@ -210,7 +216,6 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  if(r.m===9&&r.y>=st.highTaxFromYear)I.push(['✅','Tax should be back to 5% this month. If not, ask HR.']);
  if(r.lunch)I.push(['🍱','Lunch fee '+NT(r.lunch)+' comes out of this salary. Already counted.']);
  if(r.div)I.push(['🎉','MP2 dividend for last year (≈'+PH(r.div)+') should be in your MP2 now.']);
- if(r.refund)I.push(['💸','School pays back your summer PH tickets this month (≈'+NT(r.refund)+'), into your Chunghwa Post account.']);
  
  T.push({id:'rent',t:'Pay rent + water: '+NT(r.rentP),w:ab+' 1 · fixed'});
  T.push({id:'elec',t:'Pay electricity: ≈ '+NT(r.elecP),w:'NT$5 per kWh · changes every month',act:[['elec','Paid NT$',r.elecP]]});
@@ -222,10 +227,15 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  if(r.peP>0||r.A.pe_nt!=null)T.push({id:'pe',t:'Pinoy Express: change '+NT(r.peP)+' to pesos',w:'For GCash (family) + GoTyme (trips)',act:[['pe_nt','Sent NT$',r.peP],['pe_php','Pesos you received ₱',Math.round(r.peP*st.rate)]]});
  if(r.pending>0)T.push({id:'swap',t:NT(r.pending)+' left to change (NT$50,000 monthly limit reached)',w:'Teacher swap or bank transfer — or it waits for next month. It still counts toward your goal.',act:[['swap_nt','Changed NT$',0],['swap_php','Received ₱',0]]});
  const tgt=r.mp2<st.mp2Target||r.toMp2>0?'MP2':'a Maya Personal Goal (max ₱100,000 each)';
- T.push({id:'p_gc',t:'Send '+PH(r.gcashPhp)+' → GCash',w:'Mom ₱12,000 · vet ₱3,000',act:[['gcash_php','Sent ₱',r.gcashPhp]]});
+ if(r.extra)T.push({id:'extra',t:'Bonus + tax refund arrive: ≈ '+NT(r.extra),w:'Into Chunghwa Post',act:[['extra','Received NT$',r.extra]]});
+ if(r.refund)T.push({id:'refund',t:'School pays back summer tickets: ≈ '+NT(r.refund),w:'Into Chunghwa Post',act:[['refund','Received NT$',r.refund]]});
+ T.push({id:'p_gc',t:'Send '+PH(r.gcashPhp)+' → GCash',w:'For Mom + vet',act:[['gcash_php','Sent ₱',r.gcashPhp]]});
  T.push({id:'p_go',t:'Send '+PH(r.goPhp)+' → GoTyme',w:'Trip money',act:[['goty_php','Sent ₱',r.goPhp]]});
  T.push({id:'p_mp2',t:'Send '+PH(r.toMp2)+' → MP2',w:'Locked savings · Maya or Virtual Pag-IBIG',act:[['mp2_php','Sent ₱',r.toMp2]]});
  T.push({id:'p_maya',t:'Send '+PH(r.toMaya)+' → Maya',w:'Savings you can reach · goals max ₱100,000 each',act:[['maya_php','Sent ₱',r.toMaya]]});
+ T.push({id:'gc_out',t:'Give Mom ₱12,000 + vet ₱3,000',w:'From GCash',act:[['gc_out','Spent ₱',st.gcashSpend??15000]]});
+ T.push({id:'subs',t:'Subscriptions: ≈ ₱'+(st.mayaSpend??1900).toLocaleString('en-US'),w:'Charged to Maya',act:[['subs','Charged ₱',st.mayaSpend??1900]]});
+ T.push({id:'cards',t:'Card & app spending: ≈ '+NT(r.cards),w:'Delivery, Uber, fun, phone, Spotify · tick at month end',act:[['cards','Spent NT$',r.cards]]});
  if(r.cleanerP)T.push({id:'cleaner',t:'Pay the cleaner: ≈ '+NT(r.cleanerP),w:'This month',act:[['cleaner','Paid NT$',r.cleanerP]]});
  const nx=rows.find(x=>x.y*12+x.m===r.y*12+r.m+1);
  for(const t of st.trips){const o=d(t.out),here=o.getFullYear()===r.y&&o.getMonth()+1===r.m;
@@ -249,7 +259,7 @@ function render(){const app=$('#app');
  $('#nav').innerHTML=[['today','✔︎','This month'],['months','🗓','Months'],['money','₱','Money'],['settings','⚙︎','Settings']].map(([t,i,l])=>`<button class="${tab===t?'on':''}" onclick="tab='${t}';render();scrollTo(0,0)"><span>${i}</span>${l}</button>`).join('');
  if(!S.settings.gross&&tab!=='settings'){app.innerHTML=`<header><h1>My Plan</h1></header><main><div class="card empty">No plan loaded yet.<br><br>Open the private setup link Claude sent you, or go to <b>Settings → Restore from code</b>.</div></main>`;return}
  const rows=rowsNow();if(tab==='today')return renderToday(rows);if(tab==='months')return renderMonths(rows);if(tab==='money')return renderMoney(rows);renderSettings()}
-const ACC={rent:'acp',elec:'acp',salary:'acp',cleaner:'acp',end:'acp',swap:'acp',fee:'acp',pe:'acp',p_gc:'agc',p_go:'agoty',p_mp2:'amp2',p_maya:'amaya',tripspend:'agoty'};
+const ACC={gc_out:'agc',subs:'amaya',cards:'acp',extra:'acp',refund:'acp',rent:'acp',elec:'acp',salary:'acp',cleaner:'acp',end:'acp',swap:'acp',fee:'acp',pe:'acp',p_gc:'agc',p_go:'agoty',p_mp2:'amp2',p_maya:'amaya',tripspend:'agoty'};
 function itemHTML(r,t){const dn=isDone(r.k,t.id);let pill='';const ac=ACC[t.id]||(t.id.startsWith('fl_')?'acp':t.id.startsWith('trip-')?'agoty':'');
  if(t.act){const vals=t.act.filter(([f])=>r.A[f]!=null).map(([f,l])=>(l.includes('₱')?PH(r.A[f]):NT(r.A[f])));
   pill=`<button class="pill ${vals.length?'set':''}" onclick="event.stopPropagation();openAct('${r.k}','${t.id}')">${vals.length?'✓ Real amount':'✎ Real amount'}</button>`}
@@ -296,7 +306,10 @@ function renderToday(rows){const i=rows.findIndex(r=>r.k===cur),r=rows[i],{T,I}=
  ${(()=>{const c=r.chk;const now=new Date(),isCur=now.getFullYear()===r.y&&now.getMonth()+1===r.m;
  const val=x=>c?c.real[x]:(isCur?expNow(r,x,now.getDate()):r.acc0[x]);
  const A=[['cp','Chunghwa Post','nt','acp'],['maya','Maya','ph','amaya'],['mp2','MP2','ph','amp2'],['goty','GoTyme','ph','agoty'],['gc','GCash','ph','agc']];
- return`<div class="accts">${A.map(([x,l,u,cl])=>{const v=val(x),dif=c?c.real[x]-c.exp[x]:0,off=c&&Math.abs(dif)>=(u==='nt'?500:1000);return`<div class="acct ${cl}" onclick="openBal('${r.k}')"><div class="an">${l}</div><div class="av">${u==='nt'?NT(v):PH(v)}</div>${off?`<div class="ad">${dif<0?'↓':'↑'} ${u==='nt'?NT(Math.abs(dif)):PH(Math.abs(dif))} vs plan</div>`:''}</div>`}).join('')}<div class="acct aup" onclick="openBal('${r.k}')"><div class="an">${c?'Updated '+MN[r.m-1]+' '+c.day:isCur?'Estimate today':'Expected on '+MN[r.m-1]+' 1'}</div><div class="av" style="font-size:15px">✎ Update balances</div></div></div>`})()}
+ const tl=tasks(r,rows).T,nm=id=>{const t=tl.find(x=>x.id===id);return t?t.t.replace(/:.*$/,''):id.startsWith('mon')?'Monday cash '+MN[r.m-1]+' '+id.slice(3):id},AN={cp:'Chunghwa Post',gc:'GCash',maya:'Maya',mp2:'MP2',goty:'GoTyme'};
+ const lines=r.left.flatMap(([id,dd,g])=>Object.entries(dd).filter(([,v])=>v).map(([a,v])=>[nm(id),a,v*g])).filter(x=>Math.abs(x[2])>=1);
+ const still=c?`<div class="card"><h2>Still to happen in ${MN[r.m-1]} (not ticked)</h2>${lines.length?lines.map(([n,a,v])=>`<div class="row"><span>${n}<span class="small"> · ${AN[a]}</span></span><span class="v">${v<0?'−':'+'}${a==='cp'?NT(Math.abs(v)):PH(Math.abs(v))}</span></div>`).join(''):'<p class="small">Nothing — everything is ticked ✓</p>'}<p class="small">If any of these already happened, tick it. Your balances above already include it.</p></div>`:'';
+ return`<div class="accts">${A.map(([x,l,u,cl])=>{const v=val(x),dif=c?c.real[x]-c.exp[x]:0,off=c&&Math.abs(dif)>=(u==='nt'?500:1000);return`<div class="acct ${cl}" onclick="openBal('${r.k}')"><div class="an">${l}</div><div class="av">${u==='nt'?NT(v):PH(v)}</div>${off?`<div class="ad">${dif<0?'↓':'↑'} ${u==='nt'?NT(Math.abs(dif)):PH(Math.abs(dif))} vs plan</div>`:''}</div>`}).join('')}<div class="acct aup" onclick="openBal('${r.k}')"><div class="an">${c?'Updated '+MN[r.m-1]+' '+c.day:isCur?'Estimate today':'Expected on '+MN[r.m-1]+' 1'}</div><div class="av" style="font-size:15px">✎ Update balances</div></div></div>`+still})()}
  ${I.map(x=>`<div class="info ${x[0]==='🌴'?'trip':''}"><span>${x[0]}</span><span>${x[1]}</span></div>`).join('')}
  <div class="card"><h2>Checklist</h2>${T.map(t=>itemHTML(r,t)).join('')}${S.closed&&S.closed[r.k]?`<div class="info" style="margin-top:10px"><span>🌙</span><span>${MNF[r.m-1]} is closed. Things not ticked were moved to next month. <a href="#" onclick="event.preventDefault();closeMonth('${r.k}',false)">Undo</a></span></div>`:`<button class="btn light" style="margin-top:10px" onclick="closeMonth('${r.k}',true)">🌙 End of ${MNF[r.m-1]}: move what I didn't do to next month</button>`}</div>
  ${r.mondays.length?`<div class="card"><h2>Monday cash · ${NT(st.cash)} each</h2><div class="chips">${r.mondays.map(dd=>`<div class="chip ${isDone(r.k,'mon'+dd)?'on':''}" onclick="toggle('${r.k}','mon${dd}')">${isDone(r.k,'mon'+dd)?'✓ ':''}${MN[r.m-1]} ${dd}</div>`).join('')}</div></div>`:''}
@@ -343,7 +356,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 20.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 21.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
