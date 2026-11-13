@@ -124,6 +124,7 @@ if(S.settings.gross&&(S.v||1)<4){const st=S.settings;
  S.actual={};S.v=4;save()}
 if(S.settings.gross&&(S.v||1)<5){const st=S.settings;st.gcashNT=7900;st.gcashSpend=15000;st.mayaSpend=1900;st.save5=(st.save5||23000)+1000;st.save18=(st.save18||17000)+1000;S.v=5;save()}
 if(S.settings.gross&&(S.v||1)<6){const st=S.settings;st.gcashNT=8900;st.mayaSpend=0;st.gcSubs=1900;st.save5=Math.max(0,(st.save5||24000)-1000);st.save18=Math.max(0,(st.save18||18000)-1000);S.v=6;save()}
+if(S.settings.gross&&(S.v||1)<7){const st=S.settings;st.gcashNT=9000;st.gcSubs=2000;st.save5=Math.max(0,(st.save5||23000)-100);st.save18=Math.max(0,(st.save18||17000)-100);S.v=7;save()}
 const $=s=>document.querySelector(s);
 const NT=n=>'NT$'+Math.round(n).toLocaleString('en-US');
 const PH=n=>'₱'+Math.round(n).toLocaleString('en-US');
@@ -232,7 +233,7 @@ function tasks(r,rows){const st=S.settings,ab=MN[r.m-1],T=[],I=[];
  const tgt=r.mp2<st.mp2Target||r.toMp2>0?'MP2':'a Maya Personal Goal (max ₱100,000 each)';
  if(r.extra)T.push({id:'extra',t:'Bonus + tax refund arrive: ≈ '+NT(r.extra),w:'Into Chunghwa Post',act:[['extra','Received NT$',r.extra]]});
  if(r.refund)T.push({id:'refund',t:'School pays back summer tickets: ≈ '+NT(r.refund),w:'Into Chunghwa Post',act:[['refund','Received NT$',r.refund]]});
- T.push({id:'p_gc',t:'Send '+PH(r.gcashPhp)+' → GCash',w:'Mom + vet + subscriptions (auto-debit)',act:[['gcash_php','Sent ₱',r.gcashPhp]]});
+ T.push({id:'p_gc',t:'Send '+PH(r.gcashPhp)+' → GCash / Maya wallet',w:'Family ₱15,000 + subscriptions ₱2,000 · split between wallets however you like',act:[['gcash_php','Sent ₱',r.gcashPhp]]});
  T.push({id:'p_go',t:'Send '+PH(r.goPhp)+' → GoTyme',w:'Trip money',act:[['goty_php','Sent ₱',r.goPhp]]});
  T.push({id:'p_mp2',t:'Send '+PH(r.toMp2)+' → MP2',w:'Locked savings · Maya or Virtual Pag-IBIG',act:[['mp2_php','Sent ₱',r.toMp2]]});
  T.push({id:'p_maya',t:'Send '+PH(r.toMaya)+' → Maya',w:'Savings you can reach · goals max ₱100,000 each',act:[['maya_php','Sent ₱',r.toMaya]]});
@@ -306,7 +307,7 @@ function renderToday(rows){const i=rows.findIndex(r=>r.k===cur),r=rows[i],{T,I}=
  ${(()=>{const c=r.chk;const now=new Date(),isCur=now.getFullYear()===r.y&&now.getMonth()+1===r.m;
  const endv={cp:r.end,maya:r.maya,mp2:r.mp2,goty:r.goty,gc:r.gcash};const val=x=>c?c.real[x]:(isCur?expNow(r,x,now.getDate()):endv[x]);
  const A=[['cp','Chunghwa Post','nt','acp'],['maya','Maya','ph','amaya'],['mp2','MP2','ph','amp2'],['goty','GoTyme','ph','agoty'],['gc','GCash','ph','agc']];
- const tl=tasks(r,rows).T,nm=id=>{const t=tl.find(x=>x.id===id);return id==='everyday'?'Everyday spending, rest of month (estimate)':id==='p_gc'?'GCash in − out (Mom, vet, subs)':t?t.t.replace(/:.*$/,''):id.startsWith('mon')?'Monday cash '+MN[r.m-1]+' '+id.slice(3):id},AN={cp:'Chunghwa Post',gc:'GCash',maya:'Maya',mp2:'MP2',goty:'GoTyme'};
+ const tl=tasks(r,rows).T,nm=id=>{const t=tl.find(x=>x.id===id);return id==='everyday'?'Everyday spending, rest of month (estimate)':id==='p_gc'?'GCash in − out (Mom, vet, subs)':t?t.t.replace(/:.*$/,''):id.startsWith('mon')?'Monday cash '+MN[r.m-1]+' '+id.slice(3):id},AN={cp:'Chunghwa Post',gc:'GCash',maya:'Maya savings',mp2:'MP2',goty:'GoTyme'};
  const lines=r.left.flatMap(([id,dd,g])=>Object.entries(dd).filter(([,v])=>v).map(([a,v])=>[nm(id),a,v*g])).filter(x=>Math.abs(x[2])>=1);
  const still=c?`<div class="card"><h2>Still to happen in ${MN[r.m-1]} (not ticked)</h2>${lines.length?lines.map(([n,a,v])=>`<div class="row"><span>${n}<span class="small"> · ${AN[a]}</span></span><span class="v">${v<0?'−':'+'}${a==='cp'?NT(Math.abs(v)):PH(Math.abs(v))}</span></div>`).join(''):'<p class="small">Nothing — everything is ticked ✓</p>'}<p class="small">If a checklist item already happened, tick it. Your other expenses don't need to be ticked — the balance you type already includes them.</p></div>`:'';
  return`<div class="accts">${A.map(([x,l,u,cl])=>{const v=val(x),dif=c?c.real[x]-c.exp[x]:0,off=c&&Math.abs(dif)>=(u==='nt'?500:1000);return`<div class="acct ${cl}" onclick="openBal('${r.k}')"><div class="an">${l}</div><div class="av">${u==='nt'?NT(v):PH(v)}</div>${off?`<div class="ad">${dif<0?'↓':'↑'} ${u==='nt'?NT(Math.abs(dif)):PH(Math.abs(dif))} vs plan</div>`:''}</div>`}).join('')}<div class="acct aup" onclick="openBal('${r.k}')"><div class="an">${c?'Updated '+MN[r.m-1]+' '+c.day:isCur?'Estimate today':'End of '+MN[r.m-1]+' (after salary)'}</div><div class="av" style="font-size:15px">✎ Update balances</div></div></div>`})()}
@@ -356,7 +357,7 @@ function renderSettings(){const st=S.settings;
  <div class="card"><h2>Flight budgets (one-way)</h2><p class="small">Type the real price in each month's checklist when you book.</p>${st.flights.map((f,i)=>`<label class="f"><span>${f.name} · book ${MN[+f.book.slice(5)-1]} ${f.book.slice(0,4)}${f.refund?' · school pays back':''}</span><input inputmode="decimal" value="${f.nt}" onchange="setFl(${i},this.value)"></label>`).join('')}</div>
  <div class="card"><h2>Paid leave</h2>${st.leave.map((L,i)=>`<div style="padding:8px 0;border-top:1px solid var(--line)"><b>Summer ${L.summer.slice(0,4)}</b> · ${leaveLeft(L)} paid days left → <b>${unpaidDays(+L.summer.slice(0,4),+L.summer.slice(5))} unpaid</b>${[['total','Paid days in contract'],['used','Already used'],['beforeWinter','Used before winter'],['winter','Winter trip workdays'],['sem2','Used in 2nd semester']].map(([f,l])=>`<label class="f"><span>${l}</span><input inputmode="decimal" value="${L[f]}" onchange="setLeave(${i},'${f}',this.value)"></label>`).join('')}</div>`).join('')}</div>
  <div class="card"><h2>Backup</h2><p class="small">Copy this code and keep it in Notes (or send it to Claude). If your phone ever loses the app data, paste it back.</p><button class="btn" onclick="backup()">Copy backup code</button><textarea id="bk" placeholder="Paste a code here to restore"></textarea><button class="btn light" onclick="restore()">Restore from code</button></div>
- <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 23.</p></main>`}
+ <p class="small" style="text-align:center">Your numbers stay on this phone only. App version 24.</p></main>`}
 function num(v){return Number(String(v).replace(/[^0-9.\-]/g,''))||0}
 function setNum(f,v){S.settings[f]=num(v);save()}
 function setTrip(i,f,v){S.settings.trips[i][f]=(f==='out'||f==='back')?v:num(v);save()}
